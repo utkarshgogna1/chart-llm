@@ -2,7 +2,7 @@
 
 from chart_llm.models.base import LLMModel, LLMResponse
 from chart_llm.models.gemini import GeminiClient
-from chart_llm.models.groq import GroqModel
-from chart_llm.models.ollama import OllamaModel
+from chart_llm.models.groq import GroqClient
+from chart_llm.models.ollama import OllamaClient
 
-__all__ = ["LLMModel", "LLMResponse", "GeminiClient", "GroqModel", "OllamaModel"]
+__all__ = ["LLMModel", "LLMResponse", "GeminiClient", "GroqClient", "OllamaClient"]
