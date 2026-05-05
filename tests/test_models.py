@@ -304,7 +304,7 @@ class TestOllamaResponseParsing:
         assert resp.latency_ms >= 0
 
 
-class TestOllamaConnectError:
+class TestOllamaErrors:
     def test_connect_error_raises_helpful_runtime_error(self):
         mock_http = MagicMock()
         mock_http.post.side_effect = httpx.ConnectError("Connection refused")
@@ -328,6 +328,20 @@ class TestOllamaConnectError:
 
         with pytest.raises(RuntimeError, match="ollama pull llama3.1:8b"):
             client.generate(system="s", user="u")
+
+    def test_404_raises_helpful_runtime_error(self):
+        def handler(request: httpx.Request) -> httpx.Response:
+            return httpx.Response(404, json={"error": "model not found"})
+
+        with pytest.raises(RuntimeError, match="is not pulled"):
+            _make_ollama(handler).generate(system="s", user="u")
+
+    def test_404_message_includes_model_name_and_pull_command(self):
+        def handler(request: httpx.Request) -> httpx.Response:
+            return httpx.Response(404, json={"error": "model not found"})
+
+        with pytest.raises(RuntimeError, match=r"ollama pull llama3\.1:8b"):
+            _make_ollama(handler).generate(system="s", user="u")
 
 
 # ===========================================================================

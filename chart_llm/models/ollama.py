@@ -34,6 +34,10 @@ class OllamaClient(LLMModel):
                 "Ollama is not running. Install from https://ollama.com and run "
                 "`ollama pull llama3.1:8b`."
             )
+        if resp.status_code == 404:
+            raise RuntimeError(
+                f"Ollama model '{self._model}' is not pulled. Run: ollama pull {self._model}"
+            )
         resp.raise_for_status()
         data = resp.json()
         text = data["message"]["content"]
