@@ -4,7 +4,7 @@ import json
 
 import pandas as pd
 
-from chart_llm.models.base import GenerationRequest, LLMModel
+from chart_llm.models.base import LLMModel
 from chart_llm.prompts.vega_lite import build_generation_prompt, build_retry_prompt
 from chart_llm.validation import validate_schema, validate_semantics
 

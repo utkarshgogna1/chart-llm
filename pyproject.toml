@@ -29,3 +29,4 @@ chart-llm = "chart_llm.cli:app"
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
+
