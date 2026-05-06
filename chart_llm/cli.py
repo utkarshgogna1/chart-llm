@@ -1,9 +1,9 @@
 """CLI entry point — `chart-llm <command>`."""
 
+import json
 from pathlib import Path
 
 import typer
-from rich import print as rprint
 from rich.console import Console
 from rich.table import Table
 
@@ -14,14 +14,63 @@ app = typer.Typer(help="chart-llm: natural-language → Vega-Lite chart generati
 def generate(
     csv: Path = typer.Argument(..., help="Path to input CSV file"),
     question: str = typer.Argument(..., help="Natural-language question about the data"),
-    model: str = typer.Option("gemini", help="Model to use: gemini | groq | ollama"),
-    output: Path = typer.Option(Path("chart.html"), help="Output HTML path"),
-    no_validate: bool = typer.Option(False, "--no-validate", help="Skip validation loop"),
+    model: str = typer.Option("gemini-flash", help="Model: gemini-flash | llama-70b-groq | llama-8b-local"),
+    output: Path = typer.Option(Path("chart.html"), help="Output HTML path (rendering in Prompt 5)"),
     max_retries: int = typer.Option(3, help="Max validation retry attempts"),
 ) -> None:
-    """Generate a Vega-Lite chart from a CSV and a question."""
-    # TODO: load df, pick model, call run_pipeline, render HTML
-    rprint(f"[yellow]TODO:[/yellow] generate chart for '{question}' using {model}")
+    """Generate a Vega-Lite spec from a CSV and a natural-language question."""
+    from chart_llm.models.registry import get_client
+    from chart_llm.pipeline.dataset import build_dataset_context
+    from chart_llm.pipeline.generate import generate_spec
+
+    console = Console()
+
+    # ── Dataset summary ──────────────────────────────────────────────────────
+    dataset_ctx = build_dataset_context(csv)
+
+    schema_table = Table(
+        title=f"Dataset: [bold]{dataset_ctx.name}[/bold] ({dataset_ctx.row_count:,} rows)",
+        show_lines=False,
+    )
+    schema_table.add_column("column", style="bold cyan")
+    schema_table.add_column("dtype")
+    schema_table.add_column("sample values", no_wrap=False)
+    schema_table.add_column("unique", justify="right")
+    schema_table.add_column("null", justify="right")
+    for col in dataset_ctx.column_schema:
+        schema_table.add_row(
+            col.name,
+            col.dtype,
+            ", ".join(col.sample_values),
+            str(col.n_unique),
+            str(col.n_null),
+        )
+    console.print(schema_table)
+
+    # ── Generate ─────────────────────────────────────────────────────────────
+    client = get_client(model)
+    with console.status(f"[bold blue]Generating with {model}…[/bold blue]"):
+        result = generate_spec(client, dataset_ctx, question)
+
+    # ── Spec output ───────────────────────────────────────────────────────────
+    console.print("\n[bold green]Generated Vega-Lite spec:[/bold green]")
+    console.print_json(json.dumps(result.spec, indent=2))
+
+    # ── Stats ─────────────────────────────────────────────────────────────────
+    stats = Table(show_header=False, box=None, padding=(0, 1))
+    stats.add_column("field", style="bold cyan")
+    stats.add_column("value")
+    stats.add_row("model", result.model_name)
+    stats.add_row("latency", f"{result.latency_ms:.0f} ms")
+    if result.prompt_tokens is not None:
+        stats.add_row("prompt tokens", str(result.prompt_tokens))
+    if result.completion_tokens is not None:
+        stats.add_row("completion tokens", str(result.completion_tokens))
+    console.print(stats)
+
+    console.print(
+        "\n[dim]Validation not yet enabled. Use --validate after Prompt 5.[/dim]"
+    )
 
 
 @app.command()
@@ -32,7 +81,7 @@ def benchmark(
     max_retries: int = typer.Option(3, help="Max validation retry attempts"),
 ) -> None:
     """Run the full 3-model benchmark and print a summary table."""
-    # TODO: call run_benchmark_sync, display results with Rich Table
+    from rich import print as rprint
     rprint("[yellow]TODO:[/yellow] benchmark not yet implemented")
 
 
@@ -41,8 +90,7 @@ def fetch_schema(
     version: str = typer.Option("5.20.1", help="Vega-Lite schema version to download"),
 ) -> None:
     """Download the Vega-Lite JSON schema for local validation."""
-    # TODO: download from https://vega.github.io/schema/vega-lite/v{version}.json
-    # TODO: save to chart_llm/validation/vega-lite-schema.json
+    from rich import print as rprint
     rprint(f"[yellow]TODO:[/yellow] fetch schema v{version}")
 
 

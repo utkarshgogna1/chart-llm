@@ -1,0 +1,7 @@
+Dataset: {DATASET}
+Row count: {ROW_COUNT}
+
+Column schema:
+{COLUMN_SCHEMA}
+
+Question: {QUESTION}

@@ -1,31 +1,42 @@
-"""Top-level pipeline: CSV + question → validated Vega-Lite spec."""
+"""Pipeline entry points: generate_spec and run_pipeline stub."""
 
-from dataclasses import dataclass, field
+from typing import Optional
 
-import pandas as pd
+from pydantic import BaseModel, ConfigDict
 
 from chart_llm.models.base import LLMModel
-from chart_llm.pipeline.retry import retry_until_valid
+from chart_llm.pipeline.dataset import DatasetContext
+from chart_llm.prompts.vega_lite import build_generation_prompt
 
-# TODO: add CSV schema extraction helper (column names, dtypes, sample rows)
 
-
-@dataclass
-class PipelineResult:
+class GenerationResult(BaseModel):
     spec: dict
-    attempts: int
-    validation_errors_per_attempt: list[list[str]] = field(default_factory=list)
-    success: bool = True
+    raw_text: str
+    latency_ms: float
+    prompt_tokens: Optional[int] = None
+    completion_tokens: Optional[int] = None
+    model_name: str
 
 
-async def run_pipeline(
-    model: LLMModel,
-    df: pd.DataFrame,
+def generate_spec(
+    client: LLMModel,
+    dataset_ctx: DatasetContext,
     question: str,
-    max_retries: int = 3,
-    validate: bool = True,
-) -> PipelineResult:
-    """Generate a Vega-Lite spec for `question` over `df`, optionally retrying on errors."""
-    # TODO: extract csv_schema string from df
-    # TODO: call retry_until_valid when validate=True, else call model once
+) -> GenerationResult:
+    """Call the model once and return the parsed spec with metadata."""
+    system, user = build_generation_prompt(dataset_ctx, question)
+    response = client.generate(system=system, user=user)
+    spec = LLMModel.extract_json(response.text)
+    return GenerationResult(
+        spec=spec,
+        raw_text=response.text,
+        latency_ms=response.latency_ms,
+        prompt_tokens=response.prompt_tokens,
+        completion_tokens=response.completion_tokens,
+        model_name=response.model_name,
+    )
+
+
+def run_pipeline(*args, **kwargs):
+    # TODO: implement validation + retry loop in Prompt 5/6
     raise NotImplementedError

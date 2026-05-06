@@ -1,33 +1,35 @@
 """Prompt builders for Vega-Lite generation and retry-with-feedback."""
 
-# TODO: tune system prompt with Vega-Lite schema summary and few-shot examples
-
-SYSTEM_PROMPT = """\
-You are an expert data visualization assistant. Given a CSV schema and a natural-language question,
-output a valid Vega-Lite v5 JSON specification that answers the question.
-Return ONLY valid JSON — no markdown, no explanation.
-"""
+from chart_llm.pipeline.dataset import DatasetContext
+from chart_llm.prompts.loader import load_prompts
 
 
-def build_generation_prompt(csv_schema: str, question: str) -> str:
-    """Build the user turn for the initial spec generation request."""
-    # TODO: include field names, dtypes, and sample rows from csv_schema
-    return f"CSV schema:\n{csv_schema}\n\nQuestion: {question}"
+def build_generation_prompt(dataset_ctx: DatasetContext, question: str) -> tuple[str, str]:
+    """Return (system, user) for an initial spec generation request."""
+    system, user_template = load_prompts()
+
+    header = f"{'name':<20} | {'dtype':<10} | sample_values"
+    divider = "-" * 60
+    rows = [
+        f"{col.name:<20} | {col.dtype:<10} | {', '.join(col.sample_values)}"
+        for col in dataset_ctx.column_schema
+    ]
+    schema_block = "\n".join([header, divider] + rows)
+
+    user = user_template.format(
+        DATASET=dataset_ctx.name,
+        ROW_COUNT=dataset_ctx.row_count,
+        COLUMN_SCHEMA=schema_block,
+        QUESTION=question,
+    )
+    return system, user
 
 
 def build_retry_prompt(
-    csv_schema: str,
+    dataset_ctx: DatasetContext,
     question: str,
     previous_spec: str,
     validation_errors: list[str],
-) -> str:
-    """Build the user turn for a retry after validation failure."""
-    # TODO: format errors clearly so the model can pinpoint the problem
-    errors_block = "\n".join(f"- {e}" for e in validation_errors)
-    return (
-        f"CSV schema:\n{csv_schema}\n\n"
-        f"Question: {question}\n\n"
-        f"Your previous Vega-Lite spec had these errors:\n{errors_block}\n\n"
-        f"Previous spec:\n{previous_spec}\n\n"
-        "Please fix the spec and return valid JSON only."
-    )
+) -> tuple[str, str]:
+    # TODO: implement in Prompt 6
+    raise NotImplementedError("Retry prompts are implemented in Prompt 6")
