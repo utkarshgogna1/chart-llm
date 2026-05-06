@@ -1,0 +1,17 @@
+{
+  "id": "sales_003",
+  "dataset": "sales.csv",
+  "question": "Compare revenue by product as a stacked bar chart, with stacks colored by region",
+  "ground_truth_spec": {
+    "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+    "data": {"name": "table"},
+    "mark": "bar",
+    "encoding": {
+      "x": {"field": "product", "type": "nominal"},
+      "y": {"field": "revenue", "type": "quantitative", "aggregate": "sum"},
+      "color": {"field": "region", "type": "nominal"}
+    }
+  },
+  "tags": ["bar", "grouped", "categorical"],
+  "difficulty": "medium"
+}

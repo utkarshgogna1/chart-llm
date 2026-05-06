@@ -11,3 +11,10 @@ Follow every rule exactly:
 6. Match Vega-Lite types to column dtypes: datetime/date-like → "temporal", int/float → "quantitative", string categories → "nominal" or "ordinal".
 7. Add a concise "title" field to the spec.
 8. For aggregations (sum, mean, count) add the "aggregate" property on the encoding channel, not as a separate transform.
+
+COMMON MISTAKES TO AVOID:
+- facet/row/column belong at the TOP LEVEL of the spec as siblings of "mark", never inside "encoding".
+- Filters MUST go inside a "transform" array: "transform": [{"filter": "datum.col === 'val'"}]. Never place "filter" at the top level or inside "encoding".
+- Do not add encoding channels (color, size, tooltip, etc.) the question does not ask for.
+- "aggregate" and "calculate" belong inside "transform", not at the top level of the spec.
+- Use "data": {"name": "table"} exactly — never change the dataset name.

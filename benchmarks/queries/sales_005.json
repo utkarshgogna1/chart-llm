@@ -1,0 +1,16 @@
+{
+  "id": "sales_005",
+  "dataset": "sales.csv",
+  "question": "Average revenue per region as a horizontal bar chart",
+  "ground_truth_spec": {
+    "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+    "data": {"name": "table"},
+    "mark": "bar",
+    "encoding": {
+      "y": {"field": "region", "type": "nominal"},
+      "x": {"field": "revenue", "type": "quantitative", "aggregate": "mean"}
+    }
+  },
+  "tags": ["bar", "horizontal", "aggregation"],
+  "difficulty": "medium"
+}

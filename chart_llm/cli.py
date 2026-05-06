@@ -1,14 +1,19 @@
 """CLI entry point — `chart-llm <command>`."""
 
+import difflib
 import json
 from pathlib import Path
 
 import typer
 from rich.console import Console
 from rich.panel import Panel
+from rich.syntax import Syntax
 from rich.table import Table
 
 app = typer.Typer(help="chart-llm: natural-language → Vega-Lite chart generation")
+
+bench_app = typer.Typer(help="Benchmark commands.")
+app.add_typer(bench_app, name="bench")
 
 
 def _print_dataset_summary(console: Console, dataset_ctx) -> None:
@@ -147,16 +152,181 @@ def render(
     console.print(f"[bold green]✓[/bold green] Chart written to [bold]{out}[/bold]")
 
 
-@app.command()
-def benchmark(
-    datasets: Path = typer.Option(Path("benchmarks/datasets"), help="Datasets directory"),
-    queries: Path = typer.Option(Path("benchmarks/queries"), help="Queries directory"),
-    results: Path = typer.Option(Path("benchmarks/results"), help="Results output directory"),
-    max_retries: int = typer.Option(3, help="Max validation retry attempts"),
+@bench_app.command("run")
+def bench_run(
+    models: str = typer.Option(
+        "gemini-flash,llama-70b-groq,llama-8b-local",
+        help="Comma-separated model names",
+    ),
+    modes: str = typer.Option("baseline,validated", help="Comma-separated modes"),
+    max_attempts: int = typer.Option(3, help="Max validation retry attempts"),
+    output: Path = typer.Option(
+        Path("benchmarks/results/run.jsonl"), help="Output JSONL file"
+    ),
+    queries_dir: Path = typer.Option(
+        Path("benchmarks/queries"), help="Directory containing query JSON files"
+    ),
+    datasets_dir: Path = typer.Option(
+        Path("benchmarks/datasets"), help="Directory containing CSV datasets"
+    ),
+    no_resume: bool = typer.Option(False, "--no-resume", help="Re-run already-recorded triples"),
 ) -> None:
-    """Run the full 3-model benchmark and print a summary table."""
-    from rich import print as rprint
-    rprint("[yellow]TODO:[/yellow] benchmark not yet implemented")
+    """Run the benchmark across models and modes, appending results to a JSONL file."""
+    from chart_llm.eval.runner import run_benchmark as _run
+
+    model_names = [m.strip() for m in models.split(",") if m.strip()]
+    mode_list = [m.strip() for m in modes.split(",") if m.strip()]
+
+    console = Console()
+    console.print(
+        f"[bold blue]Running benchmark:[/bold blue] "
+        f"{len(model_names)} model(s) × {len(mode_list)} mode(s)"
+    )
+    _run(
+        model_names=model_names,
+        modes=mode_list,
+        queries_dir=queries_dir,
+        datasets_dir=datasets_dir,
+        output_path=output,
+        max_attempts=max_attempts,
+        resume=not no_resume,
+    )
+    console.print(f"\n[bold green]✓[/bold green] Results written to [bold]{output}[/bold]")
+
+
+@bench_app.command("report")
+def bench_report(
+    input: Path = typer.Option(
+        Path("benchmarks/results/run.jsonl"), help="JSONL results file"
+    ),
+    output: Path = typer.Option(
+        Path("benchmarks/results/REPORT.md"), help="Output Markdown report"
+    ),
+) -> None:
+    """Build a Markdown report from a benchmark JSONL file."""
+    from chart_llm.eval.report import build_report as _build
+
+    console = Console()
+    if not input.exists():
+        console.print(f"[bold red]Error:[/bold red] {input} not found.")
+        raise typer.Exit(code=1)
+    _build(input, output)
+    console.print(f"[bold green]✓[/bold green] Report written to [bold]{output}[/bold]")
+
+
+@bench_app.command("list")
+def bench_list(
+    queries_dir: Path = typer.Option(
+        Path("benchmarks/queries"), help="Directory containing query JSON files"
+    ),
+) -> None:
+    """Pretty-print all benchmark queries as a table."""
+    from chart_llm.eval.queries import load_benchmark
+
+    console = Console()
+    queries = load_benchmark(queries_dir)
+    if not queries:
+        console.print("[yellow]No queries found.[/yellow]")
+        return
+
+    t = Table(title=f"Benchmark Queries ({len(queries)} total)", show_lines=False)
+    t.add_column("id", style="bold cyan")
+    t.add_column("dataset")
+    t.add_column("difficulty")
+    t.add_column("tags")
+    t.add_column("question", no_wrap=False)
+    for q in queries:
+        t.add_row(q.id, q.dataset, q.difficulty, ", ".join(q.tags), q.question)
+    console.print(t)
+
+
+@bench_app.command("inspect")
+def bench_inspect(
+    query_id: str = typer.Argument(..., help="Query ID to inspect (e.g. sales_003)"),
+    input: Path = typer.Option(
+        Path("benchmarks/results/smoke.jsonl"), help="JSONL results file"
+    ),
+    queries_dir: Path = typer.Option(
+        Path("benchmarks/queries"), help="Directory containing query JSON files"
+    ),
+) -> None:
+    """Print ground-truth vs predicted spec, mismatches, and unified diff for a query."""
+    from chart_llm.eval.queries import load_benchmark
+    from chart_llm.eval.runner import BenchmarkRecord
+
+    console = Console()
+
+    if not input.exists():
+        console.print(f"[bold red]Error:[/bold red] {input} not found.")
+        raise typer.Exit(code=1)
+
+    queries = {q.id: q for q in load_benchmark(queries_dir)}
+    if query_id not in queries:
+        console.print(f"[bold red]Error:[/bold red] Query {query_id!r} not found in {queries_dir}")
+        raise typer.Exit(code=1)
+
+    ground_truth = queries[query_id].ground_truth_spec
+
+    records = []
+    for line in input.read_text(encoding="utf-8").splitlines():
+        line = line.strip()
+        if not line:
+            continue
+        try:
+            rec = BenchmarkRecord.model_validate_json(line)
+            if rec.query_id == query_id:
+                records.append(rec)
+        except Exception:
+            pass
+
+    if not records:
+        console.print(f"[yellow]No records found for {query_id!r} in {input}[/yellow]")
+        return
+
+    def _normalize_for_diff(spec: dict) -> str:
+        stripped = {
+            k: v for k, v in spec.items()
+            if k not in ("$schema", "title", "description", "data", "datasets")
+        }
+        return json.dumps(stripped, sort_keys=True, indent=2)
+
+    console.print(f"\n[bold cyan]Ground-truth spec ({query_id}):[/bold cyan]")
+    console.print(Syntax(json.dumps(ground_truth, indent=2), "json", theme="monokai"))
+
+    gt_norm = _normalize_for_diff(ground_truth)
+
+    for rec in sorted(records, key=lambda r: (r.model, r.mode)):
+        title = f"{rec.model} / {rec.mode}"
+        console.rule(f"[bold]{title}[/bold]")
+
+        if rec.final_spec is None:
+            console.print(f"[red]No spec generated. Error: {rec.error_message}[/red]")
+            continue
+
+        console.print("[bold]Predicted spec:[/bold]")
+        console.print(Syntax(json.dumps(rec.final_spec, indent=2), "json", theme="monokai"))
+
+        console.print("\n[bold]Mismatches:[/bold]")
+        if rec.correctness.mismatches:
+            for m in rec.correctness.mismatches:
+                console.print(f"  [red]• {m}[/red]")
+        else:
+            console.print("  [green](none — correctness.match=True)[/green]")
+
+        pred_norm = _normalize_for_diff(rec.final_spec)
+        diff = list(
+            difflib.unified_diff(
+                gt_norm.splitlines(keepends=True),
+                pred_norm.splitlines(keepends=True),
+                fromfile="ground-truth (normalized)",
+                tofile="predicted (normalized)",
+            )
+        )
+        console.print("\n[bold]Unified diff (normalized, sort_keys):[/bold]")
+        if diff:
+            console.print(Syntax("".join(diff), "diff", theme="monokai"))
+        else:
+            console.print("  [green](no diff — specs normalize identically)[/green]")
 
 
 @app.command("fetch-schema")

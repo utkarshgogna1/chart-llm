@@ -1,0 +1,17 @@
+{
+  "id": "sales_004",
+  "dataset": "sales.csv",
+  "question": "Show units sold per product, only for the West region",
+  "ground_truth_spec": {
+    "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+    "data": {"name": "table"},
+    "transform": [{"filter": "datum.region === 'West'"}],
+    "mark": "bar",
+    "encoding": {
+      "x": {"field": "product", "type": "nominal"},
+      "y": {"field": "units", "type": "quantitative", "aggregate": "sum"}
+    }
+  },
+  "tags": ["bar", "filter", "aggregation"],
+  "difficulty": "medium"
+}

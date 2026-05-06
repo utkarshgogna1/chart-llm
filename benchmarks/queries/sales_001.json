@@ -1,0 +1,16 @@
+{
+  "id": "sales_001",
+  "dataset": "sales.csv",
+  "question": "Show total revenue by region as a bar chart",
+  "ground_truth_spec": {
+    "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+    "data": {"name": "table"},
+    "mark": "bar",
+    "encoding": {
+      "x": {"field": "region", "type": "nominal"},
+      "y": {"field": "revenue", "type": "quantitative", "aggregate": "sum"}
+    }
+  },
+  "tags": ["bar", "aggregation", "categorical"],
+  "difficulty": "easy"
+}

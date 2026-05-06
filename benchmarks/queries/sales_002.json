@@ -1,0 +1,16 @@
+{
+  "id": "sales_002",
+  "dataset": "sales.csv",
+  "question": "Plot total revenue over time",
+  "ground_truth_spec": {
+    "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+    "data": {"name": "table"},
+    "mark": "line",
+    "encoding": {
+      "x": {"field": "date", "type": "temporal"},
+      "y": {"field": "revenue", "type": "quantitative", "aggregate": "sum"}
+    }
+  },
+  "tags": ["line", "temporal"],
+  "difficulty": "easy"
+}

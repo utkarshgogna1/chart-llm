@@ -350,3 +350,127 @@ class TestValidationPipeline:
         result = run_validation(spec, ctx, expected_data_name="table")
         assert not result.ok
         assert result.stage_failed == "columns"
+
+
+class TestStructuralValidation:
+    """Tests for validate_structural — common Vega-Lite structural mistakes."""
+
+    from chart_llm.validation.structural import validate_structural
+
+    _SCHEMA_URL = "https://vega.github.io/schema/vega-lite/v5.json"
+
+    _BASE = {
+        "$schema": _SCHEMA_URL,
+        "data": {"name": "table"},
+        "mark": "bar",
+        "encoding": {
+            "x": {"field": "region", "type": "nominal"},
+            "y": {"field": "revenue", "type": "quantitative", "aggregate": "sum"},
+        },
+    }
+
+    def test_valid_spec_passes(self):
+        from chart_llm.validation.structural import validate_structural
+        result = validate_structural(self._BASE)
+        assert result.ok is True
+        assert result.errors == []
+
+    def test_facet_in_encoding_fails(self):
+        from chart_llm.validation.structural import validate_structural
+        spec = {
+            **self._BASE,
+            "encoding": {**self._BASE["encoding"], "facet": {"field": "region", "type": "nominal"}},
+        }
+        result = validate_structural(spec)
+        assert result.ok is False
+        assert result.stage_failed == "structural"
+        codes = [e.code for e in result.errors]
+        assert "facet_in_encoding" in codes
+
+    def test_row_in_encoding_fails(self):
+        from chart_llm.validation.structural import validate_structural
+        spec = {
+            **self._BASE,
+            "encoding": {**self._BASE["encoding"], "row": {"field": "product", "type": "nominal"}},
+        }
+        result = validate_structural(spec)
+        assert result.ok is False
+        assert any(e.code == "row_in_encoding" for e in result.errors)
+
+    def test_column_in_encoding_fails(self):
+        from chart_llm.validation.structural import validate_structural
+        spec = {
+            **self._BASE,
+            "encoding": {**self._BASE["encoding"], "column": {"field": "product", "type": "nominal"}},
+        }
+        result = validate_structural(spec)
+        assert result.ok is False
+        assert any(e.code == "column_in_encoding" for e in result.errors)
+
+    def test_filter_at_top_level_fails(self):
+        from chart_llm.validation.structural import validate_structural
+        spec = {**self._BASE, "filter": "datum.region === 'West'"}
+        result = validate_structural(spec)
+        assert result.ok is False
+        assert any(e.code == "filter_at_top_level" for e in result.errors)
+
+    def test_filter_in_encoding_fails(self):
+        from chart_llm.validation.structural import validate_structural
+        spec = {
+            **self._BASE,
+            "encoding": {
+                **self._BASE["encoding"],
+                "filter": {"field": "region", "equal": "West"},
+            },
+        }
+        result = validate_structural(spec)
+        assert result.ok is False
+        assert any(e.code == "filter_in_encoding" for e in result.errors)
+
+    def test_aggregate_at_top_level_fails(self):
+        from chart_llm.validation.structural import validate_structural
+        spec = {**self._BASE, "aggregate": [{"op": "sum", "field": "revenue", "as": "total"}]}
+        result = validate_structural(spec)
+        assert result.ok is False
+        assert any(e.code == "aggregate_at_top_level" for e in result.errors)
+
+    def test_calculate_at_top_level_fails(self):
+        from chart_llm.validation.structural import validate_structural
+        spec = {**self._BASE, "calculate": "datum.revenue * 2"}
+        result = validate_structural(spec)
+        assert result.ok is False
+        assert any(e.code == "calculate_at_top_level" for e in result.errors)
+
+    def test_transform_not_a_list_fails(self):
+        from chart_llm.validation.structural import validate_structural
+        spec = {**self._BASE, "transform": {"filter": "datum.region === 'West'"}}
+        result = validate_structural(spec)
+        assert result.ok is False
+        assert any(e.code == "transform_not_a_list" for e in result.errors)
+
+    def test_transform_as_list_passes(self):
+        from chart_llm.validation.structural import validate_structural
+        spec = {**self._BASE, "transform": [{"filter": "datum.region === 'West'"}]}
+        result = validate_structural(spec)
+        assert result.ok is True
+
+    def test_structural_errors_have_suggestions(self):
+        from chart_llm.validation.structural import validate_structural
+        spec = {
+            **self._BASE,
+            "encoding": {**self._BASE["encoding"], "facet": {"field": "region", "type": "nominal"}},
+        }
+        result = validate_structural(spec)
+        assert all(e.suggestion is not None for e in result.errors)
+
+    def test_structural_runs_before_data_ref_in_pipeline(self, ctx, vega_lite_schema):
+        """Structural check must short-circuit before data_ref so we get structural errors."""
+        from chart_llm.pipeline.dataset import DatasetContext
+        from chart_llm.validation.pipeline import run_validation
+        spec = {
+            **self._BASE,
+            "data": {"name": "wrong"},
+            "encoding": {**self._BASE["encoding"], "facet": {"field": "region", "type": "nominal"}},
+        }
+        result = run_validation(spec, ctx, expected_data_name="table")
+        assert result.stage_failed == "structural"
