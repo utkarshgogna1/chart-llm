@@ -15,7 +15,7 @@ def generate(
     csv: Path = typer.Argument(..., help="Path to input CSV file"),
     question: str = typer.Argument(..., help="Natural-language question about the data"),
     model: str = typer.Option("gemini-flash", help="Model: gemini-flash | llama-70b-groq | llama-8b-local"),
-    output: Path = typer.Option(Path("chart.html"), help="Output HTML path (rendering in Prompt 5)"),
+    output: Path = typer.Option(Path("chart.html"), help="Output HTML path (rendering in Prompt 7)"),
     max_retries: int = typer.Option(3, help="Max validation retry attempts"),
 ) -> None:
     """Generate a Vega-Lite spec from a CSV and a natural-language question."""
@@ -25,7 +25,6 @@ def generate(
 
     console = Console()
 
-    # ── Dataset summary ──────────────────────────────────────────────────────
     dataset_ctx = build_dataset_context(csv)
 
     schema_table = Table(
@@ -47,16 +46,13 @@ def generate(
         )
     console.print(schema_table)
 
-    # ── Generate ─────────────────────────────────────────────────────────────
     client = get_client(model)
     with console.status(f"[bold blue]Generating with {model}…[/bold blue]"):
         result = generate_spec(client, dataset_ctx, question)
 
-    # ── Spec output ───────────────────────────────────────────────────────────
     console.print("\n[bold green]Generated Vega-Lite spec:[/bold green]")
     console.print_json(json.dumps(result.spec, indent=2))
 
-    # ── Stats ─────────────────────────────────────────────────────────────────
     stats = Table(show_header=False, box=None, padding=(0, 1))
     stats.add_column("field", style="bold cyan")
     stats.add_column("value")
@@ -67,10 +63,7 @@ def generate(
     if result.completion_tokens is not None:
         stats.add_row("completion tokens", str(result.completion_tokens))
     console.print(stats)
-
-    console.print(
-        "\n[dim]Validation not yet enabled. Use --validate after Prompt 5.[/dim]"
-    )
+    console.print("\n[dim]Validation not yet enabled. Use --validate after Prompt 5.[/dim]")
 
 
 @app.command()
@@ -90,8 +83,43 @@ def fetch_schema(
     version: str = typer.Option("5.20.1", help="Vega-Lite schema version to download"),
 ) -> None:
     """Download the Vega-Lite JSON schema for local validation."""
-    from rich import print as rprint
-    rprint(f"[yellow]TODO:[/yellow] fetch schema v{version}")
+    from chart_llm.validation.schema import fetch_schema as _fetch
+
+    console = Console()
+    with console.status(f"[bold blue]Downloading Vega-Lite v{version} schema…[/bold blue]"):
+        path = _fetch(version=version)
+    console.print(f"[bold green]✓[/bold green] Schema cached at [bold]{path}[/bold]")
+
+
+@app.command("validate")
+def validate_cmd(
+    spec_file: Path = typer.Argument(..., help="Path to a saved JSON spec file"),
+    csv: Path = typer.Argument(..., help="Path to the source CSV"),
+    expected_data_name: str = typer.Option("table", help="Expected data.name value"),
+) -> None:
+    """Run the full validation pipeline against a saved spec and print results."""
+    from chart_llm.pipeline.dataset import build_dataset_context
+    from chart_llm.validation.pipeline import run_validation
+
+    console = Console()
+    spec = json.loads(spec_file.read_text())
+    dataset_ctx = build_dataset_context(csv)
+
+    result = run_validation(spec, dataset_ctx, expected_data_name)
+
+    if result.ok:
+        console.print("[bold green]✓ Spec passed all validation checks.[/bold green]")
+        return
+
+    console.print(
+        f"[bold red]✗ Validation failed at stage: {result.stage_failed}[/bold red]\n"
+    )
+    for err in result.errors:
+        console.print(f"  [yellow][{err.code}][/yellow] {err.path}")
+        console.print(f"    {err.message}")
+        if err.suggestion:
+            console.print(f"    [dim]→ {err.suggestion}[/dim]")
+    raise typer.Exit(code=1)
 
 
 @app.command("test-model")
