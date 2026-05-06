@@ -56,6 +56,17 @@ Each model is evaluated in both baseline and validated modes across a shared set
 
 ---
 
+## Try it
+
+> **Live demo:** *(deploy to Streamlit Community Cloud and paste URL here)*
+>
+> **Local demo:**
+> ```bash
+> streamlit run app.py
+> ```
+
+---
+
 ## Quickstart
 
 ```bash
@@ -68,8 +79,15 @@ cp .env.example .env
 # Download the Vega-Lite JSON schema (needed for validation)
 chart-llm fetch-schema
 
-# Generate a chart
-chart-llm generate data.csv "Show monthly sales as a bar chart" --model gemini
+# Generate a chart (baseline, no validation)
+chart-llm generate data.csv "Show monthly sales as a bar chart" --model gemini-flash
+
+# Generate with validation + retry loop
+chart-llm generate data.csv "Show monthly sales as a bar chart" --model gemini-flash --validate
+
+# Render a saved spec to HTML, PNG, or SVG
+chart-llm render spec.json data.csv --out chart.html
+chart-llm render spec.json data.csv --out chart.png
 
 # Run the full benchmark
 chart-llm benchmark
@@ -97,25 +115,22 @@ benchmarks/
 
 ---
 
-## Status: scaffolding
+## Status
 
 - [x] Project structure and dependency setup
 - [x] Abstract LLM model interface
-- [x] Model adapter stubs (Gemini, Groq, Ollama)
+- [x] Gemini 2.0 Flash adapter
+- [x] Groq (Llama-3-70B) adapter
+- [x] Ollama (Llama-3.1-8B) adapter
 - [x] Prompt templates (generation + retry-with-feedback)
-- [x] Validation stubs (schema, semantic)
-- [x] Pipeline and retry loop stubs
-- [x] Rendering stubs (HTML, PNG)
-- [x] Eval runner and metrics stubs
-- [x] CLI commands (generate, benchmark, fetch-schema)
-- [ ] Implement Gemini adapter
-- [ ] Implement Groq adapter
-- [ ] Implement Ollama adapter
-- [ ] Implement schema validation (download vega-lite-schema.json)
-- [ ] Implement semantic validation
-- [ ] Implement retry pipeline
-- [ ] Implement HTML rendering
-- [ ] Add benchmark datasets and queries
+- [x] JSON schema validation (Vega-Lite v5)
+- [x] Semantic validation (field names, types, aggregates)
+- [x] Retry-with-feedback pipeline
+- [x] HTML rendering (CDN-based, self-contained)
+- [x] PNG / SVG rendering (vl-convert-python, pure-Rust)
+- [x] CLI: `generate`, `render`, `validate`, `fetch-schema`, `test-model`
+- [x] Streamlit web UI (`app.py`)
+- [x] Benchmark datasets and queries
 - [ ] Run benchmark, publish results
 
 ---
@@ -125,5 +140,5 @@ benchmarks/
 - Python 3.11+
 - [uv](https://github.com/astral-sh/uv)
 - API keys: `GEMINI_API_KEY`, `GROQ_API_KEY` (see `.env.example`)
-- For PNG rendering: Node.js + `npm i -g vega-cli`
+- For PNG/SVG rendering: `vl-convert-python` (installed automatically, pure-Rust — no Node.js needed)
 - For local Llama: [Ollama](https://ollama.com) running with `ollama pull llama3.1:8b`

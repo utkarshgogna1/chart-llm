@@ -1,0 +1,11 @@
+ORIGINAL QUESTION:
+{QUESTION}
+
+PREVIOUS SPEC:
+{PREVIOUS_SPEC}
+
+VALIDATION ERRORS:
+{VALIDATION_ERRORS}
+
+INSTRUCTIONS:
+Fix the spec. Output ONLY the corrected Vega-Lite v5 JSON. Use exact column names. Use {"name": "table"} for data.

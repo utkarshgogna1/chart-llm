@@ -1,0 +1,3 @@
+# Deploying to Streamlit Community Cloud
+
+Fork (or push) this repository to GitHub, then go to [share.streamlit.io](https://share.streamlit.io) and click **"New app"** — point it at your repo, set the main file to `app.py`, and add your secrets (`GEMINI_API_KEY`, `GROQ_API_KEY`) under **Settings → Secrets** using the same `KEY = "value"` format as a `.env` file. Streamlit will install dependencies from `pyproject.toml` automatically via `pip`; the `vl-convert-python` wheel is pure-Rust and installs without extra system dependencies, so no `packages.txt` is needed. Once deployed, the public URL is shareable immediately — no authentication required unless you add it.

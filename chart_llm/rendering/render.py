@@ -1,26 +1,91 @@
-"""Render a Vega-Lite spec to HTML (always) and optionally PNG (requires node + vega-cli)."""
+"""Render a Vega-Lite spec + DataFrame to HTML, PNG, or SVG."""
 
-from pathlib import Path
+import copy
+import json
 
-import altair as alt
-
-# TODO: PNG rendering requires `npm i -g vega-cli` and subprocess call to `vl2png`
-# TODO: consider altair_saver as an alternative for PNG
+import pandas as pd
 
 
-def render_html(spec: dict, output_path: Path) -> None:
-    """Write a self-contained HTML file that renders the spec via Vega-Embed."""
-    # TODO: embed the spec in a minimal HTML template with vega-embed CDN links
-    raise NotImplementedError
+class RenderError(Exception):
+    """Raised when Vega-Lite rendering fails."""
 
 
-def render_png(spec: dict, output_path: Path, scale: float = 2.0) -> None:
-    """Render to PNG via vl2png (requires Node.js + vega-cli installed globally)."""
-    # TODO: subprocess call to `vl2png --scale {scale}`, pipe spec JSON to stdin
-    raise NotImplementedError
+def _inject_data(spec: dict, df: pd.DataFrame, expected_data_name: str) -> dict:
+    """Return a deep copy of spec with df rows added as a named dataset.
+
+    Uses the Vega-Lite top-level ``datasets`` key so the original
+    ``"data": {"name": ...}`` reference is preserved and the spec stays readable.
+    """
+    out = copy.deepcopy(spec)
+    out["datasets"] = {expected_data_name: df.to_dict(orient="records")}
+    return out
 
 
-def spec_to_altair(spec: dict) -> alt.Chart:
-    """Wrap a raw Vega-Lite dict as an Altair Chart for Jupyter display."""
-    # TODO: use alt.Chart.from_dict(spec) once we confirm it works with v5 specs
-    raise NotImplementedError
+_HTML_TEMPLATE = """\
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>chart-llm</title>
+  <script src="https://cdn.jsdelivr.net/npm/vega@5"></script>
+  <script src="https://cdn.jsdelivr.net/npm/vega-lite@5"></script>
+  <script src="https://cdn.jsdelivr.net/npm/vega-embed@6"></script>
+  <style>body {{ margin: 24px; font-family: sans-serif; }}</style>
+</head>
+<body>
+  <div id="chart"></div>
+  <script>
+    const spec = {spec_json};
+    vegaEmbed("#chart", spec, {{renderer: "canvas", actions: true}})
+      .catch(console.error);
+  </script>
+</body>
+</html>"""
+
+
+def render_to_html(
+    spec: dict,
+    df: pd.DataFrame,
+    expected_data_name: str = "table",
+) -> str:
+    """Return a self-contained HTML string that renders the chart in a browser."""
+    spec_with_data = _inject_data(spec, df, expected_data_name)
+    spec_json = json.dumps(spec_with_data, indent=2)
+    return _HTML_TEMPLATE.format(spec_json=spec_json)
+
+
+def render_to_png(
+    spec: dict,
+    df: pd.DataFrame,
+    expected_data_name: str = "table",
+    scale: float = 2.0,
+) -> bytes:
+    """Return PNG bytes for the chart (pure-Rust via vl-convert, no Node.js needed)."""
+    try:
+        import vl_convert as vlc
+    except ImportError as exc:
+        raise RenderError("vl-convert-python is not installed") from exc
+
+    spec_with_data = _inject_data(spec, df, expected_data_name)
+    try:
+        return vlc.vegalite_to_png(json.dumps(spec_with_data), scale=scale)
+    except Exception as exc:
+        raise RenderError(f"PNG rendering failed: {exc}") from exc
+
+
+def render_to_svg(
+    spec: dict,
+    df: pd.DataFrame,
+    expected_data_name: str = "table",
+) -> str:
+    """Return an SVG string for the chart."""
+    try:
+        import vl_convert as vlc
+    except ImportError as exc:
+        raise RenderError("vl-convert-python is not installed") from exc
+
+    spec_with_data = _inject_data(spec, df, expected_data_name)
+    try:
+        return vlc.vegalite_to_svg(json.dumps(spec_with_data))
+    except Exception as exc:
+        raise RenderError(f"SVG rendering failed: {exc}") from exc
