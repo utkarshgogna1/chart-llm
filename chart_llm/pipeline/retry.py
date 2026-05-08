@@ -64,6 +64,8 @@ def generate_validated_spec(
     dataset_ctx: DatasetContext,
     question: str,
     max_attempts: int = 3,
+    *,
+    include_render: bool = False,
 ) -> ValidatedRun:
     """Generate a spec, validating after each attempt and retrying with feedback."""
     attempts: list[Attempt] = []
@@ -90,7 +92,7 @@ def generate_validated_spec(
 
         try:
             spec = LLMModel.extract_json(response.text)
-            val_result = run_validation(spec, dataset_ctx)
+            val_result = run_validation(spec, dataset_ctx, include_render=include_render)
         except ValueError:
             spec = None
             val_result = _invalid_json_result()

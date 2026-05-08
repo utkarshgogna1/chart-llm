@@ -42,6 +42,7 @@ def generate(
     output: Path = typer.Option(Path("chart.html"), help="Output HTML path (rendering in Prompt 7)"),
     max_retries: int = typer.Option(3, help="Max validation retry attempts"),
     validate: bool = typer.Option(False, "--validate", is_flag=True, help="Run validation + retry loop"),
+    check_render: bool = typer.Option(False, "--check-render", is_flag=True, help="Add render check as final validation stage (requires --validate)"),
 ) -> None:
     """Generate a Vega-Lite spec from a CSV and a natural-language question."""
     from chart_llm.models.registry import get_client
@@ -76,7 +77,7 @@ def generate(
     from chart_llm.pipeline.retry import generate_validated_spec
 
     with console.status(f"[bold blue]Generating with {model} (validation on)…[/bold blue]"):
-        run = generate_validated_spec(client, dataset_ctx, question, max_attempts=max_retries)
+        run = generate_validated_spec(client, dataset_ctx, question, max_attempts=max_retries, include_render=check_render)
 
     console.print()
     for attempt in run.attempts:

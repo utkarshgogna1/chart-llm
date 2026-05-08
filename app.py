@@ -33,6 +33,14 @@ with st.sidebar:
         disabled=not validate,
     )
 
+    check_render = st.checkbox(
+        "Check render in validation loop",
+        value=False,
+        disabled=not validate,
+        help="Add a final render stage to the validation loop. Catches specs that pass "
+             "all other validators but fail to render.",
+    )
+
     st.divider()
     st.caption(
         "Set API keys via environment variables or a `.env` file: "
@@ -92,7 +100,7 @@ if validate:
     from chart_llm.pipeline.retry import generate_validated_spec  # noqa: E402
 
     with st.spinner(f"Generating with {model_name} (validation on)…"):
-        run = generate_validated_spec(client, dataset_ctx, question, max_attempts=max_attempts)
+        run = generate_validated_spec(client, dataset_ctx, question, max_attempts=max_attempts, include_render=check_render)
 
     # Per-attempt expanders
     for attempt in run.attempts:

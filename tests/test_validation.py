@@ -474,3 +474,97 @@ class TestStructuralValidation:
         }
         result = run_validation(spec, ctx, expected_data_name="table")
         assert result.stage_failed == "structural"
+
+
+class TestRenderValidation:
+    """Tests for validate_render — the optional render stage."""
+
+    _SCHEMA_URL = "https://vega.github.io/schema/vega-lite/v5.json"
+
+    _BASE = {
+        "$schema": _SCHEMA_URL,
+        "data": {"name": "table"},
+        "mark": "bar",
+        "encoding": {
+            "x": {"field": "region", "type": "nominal"},
+            "y": {"field": "revenue", "type": "quantitative", "aggregate": "sum"},
+        },
+    }
+
+    def test_valid_spec_renders_ok(self, ctx, vega_lite_schema):
+        """A valid spec + real df should produce ok=True."""
+        from chart_llm.validation.render import validate_render
+        result = validate_render(self._BASE, ctx)
+        assert result.ok is True
+        assert result.errors == []
+
+    def test_render_error_produces_render_failed(self, ctx, vega_lite_schema):
+        """If render_to_html raises RenderError, stage_failed='render' and code='render_failed'."""
+        from unittest.mock import patch
+
+        from chart_llm.rendering.render import RenderError
+        from chart_llm.validation.render import validate_render
+
+        with patch("chart_llm.validation.render.render_to_html", side_effect=RenderError("vl-convert exploded")):
+            result = validate_render(self._BASE, ctx)
+
+        assert result.ok is False
+        assert result.stage_failed == "render"
+        assert result.errors[0].code == "render_failed"
+        assert "vl-convert exploded" in result.errors[0].message
+
+    def test_bad_column_spec_stopped_before_render(self, ctx, vega_lite_schema):
+        """Columns validator must short-circuit before render — bad-column spec never reaches render stage."""
+        from unittest.mock import patch
+
+        from chart_llm.validation.pipeline import run_validation
+
+        bad_col_spec = {
+            **self._BASE,
+            "encoding": {
+                "x": {"field": "nonexistent_col", "type": "nominal"},
+                "y": {"field": "revenue", "type": "quantitative", "aggregate": "sum"},
+            },
+        }
+        with patch("chart_llm.validation.render.render_to_html") as mock_render:
+            result = run_validation(bad_col_spec, ctx, include_render=True)
+
+        mock_render.assert_not_called()
+        assert result.stage_failed == "columns"
+
+    def test_include_render_false_skips_render_stage(self, ctx, vega_lite_schema):
+        """When include_render=False (default), render_to_html is never called."""
+        from unittest.mock import patch
+
+        from chart_llm.validation.pipeline import run_validation
+
+        with patch("chart_llm.validation.render.render_to_html") as mock_render:
+            result = run_validation(self._BASE, ctx, include_render=False)
+
+        mock_render.assert_not_called()
+        assert result.ok is True
+
+    def test_include_render_true_calls_render_stage(self, ctx, vega_lite_schema):
+        """When include_render=True, render_to_html is called on a passing spec."""
+        from unittest.mock import patch
+
+        from chart_llm.validation.pipeline import run_validation
+
+        with patch("chart_llm.validation.render.render_to_html", return_value="<html/>") as mock_render:
+            result = run_validation(self._BASE, ctx, include_render=True)
+
+        mock_render.assert_called_once()
+        assert result.ok is True
+
+    def test_unexpected_exception_becomes_render_failed(self, ctx, vega_lite_schema):
+        """Non-RenderError exceptions from render_to_html are also caught and reported."""
+        from unittest.mock import patch
+
+        from chart_llm.validation.render import validate_render
+
+        with patch("chart_llm.validation.render.render_to_html", side_effect=ValueError("unexpected")):
+            result = validate_render(self._BASE, ctx)
+
+        assert result.ok is False
+        assert result.stage_failed == "render"
+        assert result.errors[0].code == "render_failed"

@@ -4,27 +4,30 @@
 
 | Model | Mode | Queries | Succeeded | Errored |
 | -------------------- | ------------ | ------- | ---------- | -------- |
-| llama-70b-groq | baseline | 5 | 5 | 0 |
-| llama-70b-groq | validated | 5 | 5 | 0 |
+| llama-8b-local | baseline | 5 | 5 | 0 |
+| llama-8b-local | validated | 5 | 5 | 0 |
 
 ## Results
 
 | Model | Mode | Validated | Correctness | No Hallucinations | Renders | Median Latency | Avg Attempts |
 | -------------------- | ------------ | ---------- | ------------ | ------------------ | -------- | --------------- | ------------- |
-| llama-70b-groq | baseline | 0% | 100% | 100% | 100% | 629 ms | 1.00 |
-| llama-70b-groq | validated | 100% | 100% | 100% | 100% | 478 ms | 1.00 |
+| llama-8b-local | baseline | 0% | 40% | 100% | 100% | 5786 ms | 1.00 |
+| llama-8b-local | validated | 60% | 40% | 100% | 60% | 10220 ms | 2.00 |
 
 ## Validation Impact
 
 | Model | Validated Δ | Correctness Δ | No Hallucinations Δ | Renders Δ |
 | -------------------- | ------------ | -------------- | -------------------- | ---------- |
-| llama-70b-groq | ↑100% | 0% | 0% | 0% |
+| llama-8b-local | ↑60% | 0% | 0% | ↓40% |
 
 ## Failure-Mode Taxonomy
 
 | Category | Count |
 | ------------------------- | ------ |
-| correct | 10 |
+| correct | 4 |
+| wrong_aggregate | 3 |
+| no_spec | 2 |
+| wrong_encoding | 1 |
 
 ## Per-Query Details
 
@@ -32,41 +35,41 @@
 
 | Model | Mode | Validated | Correct | Hallucinations | Renders | Latency |
 | -------------------- | ------------ | ---------- | -------- | -------------- | -------- | ---------- |
-| llama-70b-groq | baseline | ✗ | ✓ | none | ✓ | 839 ms |
-| llama-70b-groq | validated | ✓ | ✓ | none | ✓ | 444 ms |
+| llama-8b-local | baseline | ✗ | ✓ | none | ✓ | 14302 ms |
+| llama-8b-local | validated | ✓ | ✓ | none | ✓ | 4402 ms |
 
 ### sales_002
 
 | Model | Mode | Validated | Correct | Hallucinations | Renders | Latency |
 | -------------------- | ------------ | ---------- | -------- | -------------- | -------- | ---------- |
-| llama-70b-groq | baseline | ✗ | ✓ | none | ✓ | 629 ms |
-| llama-70b-groq | validated | ✓ | ✓ | none | ✓ | 814 ms |
+| llama-8b-local | baseline | ✗ | ✗ | none | ✓ | 5786 ms |
+| llama-8b-local | validated | ✓ | ✓ | none | ✓ | 3941 ms |
 
 ### sales_003
 
 | Model | Mode | Validated | Correct | Hallucinations | Renders | Latency |
 | -------------------- | ------------ | ---------- | -------- | -------------- | -------- | ---------- |
-| llama-70b-groq | baseline | ✗ | ✓ | none | ✓ | 517 ms |
-| llama-70b-groq | validated | ✓ | ✓ | none | ✓ | 467 ms |
+| llama-8b-local | baseline | ✗ | ✗ | none | ✓ | 7077 ms |
+| llama-8b-local | validated | ✗ | ✗ | none | ✗ | 22639 ms |
 
 ### sales_004
 
 | Model | Mode | Validated | Correct | Hallucinations | Renders | Latency |
 | -------------------- | ------------ | ---------- | -------- | -------------- | -------- | ---------- |
-| llama-70b-groq | baseline | ✗ | ✓ | none | ✓ | 548 ms |
-| llama-70b-groq | validated | ✓ | ✓ | none | ✓ | 478 ms |
+| llama-8b-local | baseline | ✗ | ✓ | none | ✓ | 5044 ms |
+| llama-8b-local | validated | ✗ | ✗ | none | ✗ | 19240 ms |
 
 ### sales_005
 
 | Model | Mode | Validated | Correct | Hallucinations | Renders | Latency |
 | -------------------- | ------------ | ---------- | -------- | -------------- | -------- | ---------- |
-| llama-70b-groq | baseline | ✗ | ✓ | none | ✓ | 919 ms |
-| llama-70b-groq | validated | ✓ | ✓ | none | ✓ | 825 ms |
+| llama-8b-local | baseline | ✗ | ✗ | none | ✓ | 5338 ms |
+| llama-8b-local | validated | ✓ | ✗ | none | ✓ | 10220 ms |
 
 ## Reproducibility
 
 - **Queries:** 5
-- **Models:** llama-70b-groq
+- **Models:** llama-8b-local
 - **Vega-Lite schema:** Vega-Lite v5
-- **Git SHA:** 185406f
+- **Git SHA:** 0fc48f9
 - **Total records:** 10

@@ -100,7 +100,7 @@ def _run_single(
         completion_tokens = result.completion_tokens
         stop_reason = "baseline"
     else:
-        run = generate_validated_spec(client, dataset_ctx, query.question, max_attempts=max_attempts)
+        run = generate_validated_spec(client, dataset_ctx, query.question, max_attempts=max_attempts, include_render=True)
         final_spec = run.final_spec
         attempts = len(run.attempts)
         final_validated = run.succeeded

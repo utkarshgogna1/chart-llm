@@ -4,7 +4,7 @@ from typing import Literal, Optional
 
 from pydantic import BaseModel
 
-ValidationStage = Literal["schema", "structural", "data_ref", "columns", "semantics"]
+ValidationStage = Literal["schema", "structural", "data_ref", "columns", "semantics", "render"]
 
 
 class ValidationError(BaseModel):
