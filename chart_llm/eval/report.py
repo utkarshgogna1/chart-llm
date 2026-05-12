@@ -136,16 +136,17 @@ def build_report(jsonl_path: Path, out_md_path: Path) -> None:
     # ── Summary ──────────────────────────────────────────────────────────────
 
     h(2, "Summary")
-    lines.append(row("Model", "Mode", "Queries", "Succeeded", "Errored"))
-    lines.append(sep(20, 12, 7, 10, 8))
+    lines.append(row("Model", "Mode", "Queries", "Succeeded", "Errored", "No Spec"))
+    lines.append(sep(20, 12, 7, 10, 8, 8))
     for model in all_models:
         for mode in all_modes:
             subset = [r for r in records if r.model == model and r.mode == mode]
             if not subset:
                 continue
-            succeeded = sum(1 for r in subset if r.error_message is None)
+            succeeded = sum(1 for r in subset if r.final_validated)
             errored = sum(1 for r in subset if r.error_message is not None)
-            lines.append(row(model, mode, len(subset), succeeded, errored))
+            no_spec = sum(1 for r in subset if not r.final_validated and r.error_message is None)
+            lines.append(row(model, mode, len(subset), succeeded, errored, no_spec))
     lines.append("")
 
     # ── Results ──────────────────────────────────────────────────────────────

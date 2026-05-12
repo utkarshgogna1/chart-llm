@@ -244,3 +244,24 @@ def test_generation_error_stop_reason(ctx):
     assert run.succeeded is False
     assert run.stop_reason == "generation_error"
     assert run.attempts == []
+
+
+def test_http_status_error_stops_loop_immediately(ctx):
+    import httpx
+
+    class RateLimitedClient(LLMModel):
+        def generate(self, system, user, max_retries=2):
+            req = httpx.Request("POST", "http://fake.api")
+            raise httpx.HTTPStatusError(
+                "Rate limited (429)",
+                request=req,
+                response=httpx.Response(429),
+            )
+
+    run = generate_validated_spec(RateLimitedClient(), ctx, "Show revenue", max_attempts=3)
+
+    assert run.succeeded is False
+    assert run.stop_reason == "generation_error"
+    assert run.error is not None
+    assert "429" in run.error
+    assert len(run.attempts) == 0  # stopped before any attempt was recorded

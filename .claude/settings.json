@@ -2,7 +2,9 @@
   "permissions": {
     "allow": [
       "Bash(uv sync *)",
-      "Bash(uv run *)"
+      "Bash(uv run *)",
+      "Bash(wait)",
+      "Bash(python3 -c ' *)"
     ]
   }
 }

@@ -90,6 +90,7 @@ def _run_single(
     dataset_ctx = build_dataset_context(datasets_dir / query.dataset)
     client = get_client(model_name)
 
+    error_message: Optional[str] = None
     if mode == "baseline":
         result = generate_spec(client, dataset_ctx, query.question)
         final_spec: Optional[dict] = result.spec
@@ -109,6 +110,7 @@ def _run_single(
         prompt_tokens = tok.prompt or None
         completion_tokens = tok.completion or None
         stop_reason = run.stop_reason
+        error_message = run.error  # propagate API/network errors from the retry loop
 
     if final_spec is not None:
         correctness = spec_correctness(final_spec, query.ground_truth_spec)
@@ -133,7 +135,7 @@ def _run_single(
         prompt_tokens=prompt_tokens,
         completion_tokens=completion_tokens,
         stop_reason=stop_reason,
-        error_message=None,
+        error_message=error_message,
     )
 
 

@@ -35,6 +35,7 @@ class ValidatedRun(BaseModel):
     total_latency_ms: float
     total_tokens: TokenUsage
     stop_reason: Literal["validated", "max_attempts", "generation_error"]
+    error: Optional[str] = None
 
 
 def _invalid_json_result() -> ValidationResult:
@@ -80,7 +81,9 @@ def generate_validated_spec(
 
         try:
             response = client.generate(system=system, user=user)
-        except Exception:
+        except Exception as exc:
+            # API/network failures are not retryable — stop immediately and
+            # propagate the error. (Parse failures below ARE retried.)
             return ValidatedRun(
                 attempts=attempts,
                 final_spec=None,
@@ -88,6 +91,7 @@ def generate_validated_spec(
                 total_latency_ms=sum(a.latency_ms for a in attempts),
                 total_tokens=_sum_tokens(attempts),
                 stop_reason="generation_error",
+                error=str(exc),
             )
 
         try:

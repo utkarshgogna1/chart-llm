@@ -2,10 +2,10 @@
 
 ## Summary
 
-| Model | Mode | Queries | Succeeded | Errored |
-| -------------------- | ------------ | ------- | ---------- | -------- |
-| gemini-flash | baseline | 2 | 0 | 2 |
-| gemini-flash | validated | 2 | 2 | 0 |
+| Model | Mode | Queries | Succeeded | Errored | No Spec |
+| -------------------- | ------------ | ------- | ---------- | -------- | -------- |
+| gemini-flash | baseline | 5 | 0 | 5 | 0 |
+| gemini-flash | validated | 5 | 0 | 5 | 0 |
 
 ## Results
 
@@ -24,8 +24,7 @@
 
 | Category | Count |
 | ------------------------- | ------ |
-| generation_error | 2 |
-| no_spec | 2 |
+| generation_error | 10 |
 
 ## Per-Query Details
 
@@ -43,10 +42,31 @@
 | gemini-flash | baseline | ✗ | ✗ | none | ✗ | 0 ms |
 | gemini-flash | validated | ✗ | ✗ | none | ✗ | 0 ms |
 
+### sales_003
+
+| Model | Mode | Validated | Correct | Hallucinations | Renders | Latency |
+| -------------------- | ------------ | ---------- | -------- | -------------- | -------- | ---------- |
+| gemini-flash | baseline | ✗ | ✗ | none | ✗ | 0 ms |
+| gemini-flash | validated | ✗ | ✗ | none | ✗ | 0 ms |
+
+### sales_004
+
+| Model | Mode | Validated | Correct | Hallucinations | Renders | Latency |
+| -------------------- | ------------ | ---------- | -------- | -------------- | -------- | ---------- |
+| gemini-flash | baseline | ✗ | ✗ | none | ✗ | 0 ms |
+| gemini-flash | validated | ✗ | ✗ | none | ✗ | 0 ms |
+
+### sales_005
+
+| Model | Mode | Validated | Correct | Hallucinations | Renders | Latency |
+| -------------------- | ------------ | ---------- | -------- | -------------- | -------- | ---------- |
+| gemini-flash | baseline | ✗ | ✗ | none | ✗ | 0 ms |
+| gemini-flash | validated | ✗ | ✗ | none | ✗ | 0 ms |
+
 ## Reproducibility
 
-- **Queries:** 2
+- **Queries:** 5
 - **Models:** gemini-flash
 - **Vega-Lite schema:** Vega-Lite v5
-- **Git SHA:** 0fc48f9
-- **Total records:** 4
+- **Git SHA:** 4b6d7ef
+- **Total records:** 10

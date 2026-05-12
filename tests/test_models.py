@@ -38,7 +38,10 @@ _VALID_OLLAMA_BODY = {
 
 
 def _make_gemini(handler) -> GeminiClient:
-    return GeminiClient(_client=httpx.Client(transport=httpx.MockTransport(handler)))
+    return GeminiClient(
+        _client=httpx.Client(transport=httpx.MockTransport(handler)),
+        retry_delays=[2, 4, 8],
+    )
 
 
 def _make_groq(handler) -> GroqClient:

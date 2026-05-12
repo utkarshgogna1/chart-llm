@@ -500,3 +500,67 @@ def test_extra_unsolicited_color_channel_does_not_penalize():
     }
     score = spec_correctness(predicted, _FILTER_GT)
     assert score.match is True, f"Extra color channel should not cause mismatch: {score.mismatches}"
+
+
+# ---------------------------------------------------------------------------
+# Test 8: Summary table column semantics
+# ---------------------------------------------------------------------------
+
+
+def _make_record(
+    query_id: str,
+    final_validated: bool,
+    error_message,
+    stop_reason: str = "baseline",
+) -> BenchmarkRecord:
+    return BenchmarkRecord(
+        query_id=query_id,
+        model="test-model",
+        mode="baseline",
+        attempts=1,
+        final_validated=final_validated,
+        final_spec=_VALID_SPEC if final_validated else None,
+        correctness=CorrectnessScore(match=final_validated, mismatches=[]),
+        hallucinated_columns=[],
+        render_check=RenderCheck(ok=final_validated),
+        latency_ms=10.0,
+        prompt_tokens=5,
+        completion_tokens=5,
+        stop_reason=stop_reason,
+        error_message=error_message,
+    )
+
+
+def test_summary_table_succeeded_counts_final_validated(tmp_path):
+    jsonl = tmp_path / "test.jsonl"
+    recs = [
+        _make_record("sales_001", final_validated=True, error_message=None),
+        _make_record("sales_002", final_validated=False, error_message=None),
+        _make_record("sales_003", final_validated=False, error_message="API error"),
+    ]
+    jsonl.write_text("\n".join(r.model_dump_json() for r in recs), encoding="utf-8")
+
+    out_md = tmp_path / "report.md"
+    build_report(jsonl, out_md)
+    content = out_md.read_text()
+
+    # Extract only lines in the ## Summary section
+    all_lines = content.splitlines()
+    in_summary = False
+    summary_model_row = None
+    for line in all_lines:
+        if line.startswith("## Summary"):
+            in_summary = True
+            continue
+        if in_summary and line.startswith("## "):
+            break
+        if in_summary and "test-model" in line and "baseline" in line:
+            summary_model_row = line
+            break
+    assert summary_model_row is not None, "Summary table row not found"
+    cells = [c.strip() for c in summary_model_row.split("|") if c.strip()]
+    # cells: [model, mode, queries, succeeded, errored, no_spec]
+    assert cells[2] == "3"   # Queries
+    assert cells[3] == "1"   # Succeeded (only final_validated=True)
+    assert cells[4] == "1"   # Errored (error_message is not None)
+    assert cells[5] == "1"   # No Spec (final_validated=False AND error_message is None)
