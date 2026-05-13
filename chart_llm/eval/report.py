@@ -169,7 +169,7 @@ def build_report(jsonl_path: Path, out_md_path: Path) -> None:
                     model,
                     mode,
                     _pct([r.final_validated for r in subset]),
-                    _pct([r.correctness.match for r in subset]),
+                    _pct([r.correctness.match for r in subset if r.correctness.match is not None]),
                     _pct([r.hallucinated_columns == [] for r in subset]),
                     _pct([r.render_check.ok for r in subset]),
                     _median_ms([r.latency_ms for r in subset]),
@@ -190,12 +190,14 @@ def build_report(jsonl_path: Path, out_md_path: Path) -> None:
         if attr == "validated":
             vals = [r.final_validated for r in recs]
         elif attr == "correctness":
-            vals = [r.correctness.match for r in recs]
+            vals = [r.correctness.match for r in recs if r.correctness.match is not None]
         elif attr == "no_hall":
             vals = [r.hallucinated_columns == [] for r in recs]
         elif attr == "renders":
             vals = [r.render_check.ok for r in recs]
         else:
+            return None
+        if not vals:
             return None
         return sum(vals) / len(vals) * 100
 

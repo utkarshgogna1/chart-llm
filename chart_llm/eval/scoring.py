@@ -8,6 +8,7 @@ import pandas as pd
 from pydantic import BaseModel
 
 
+
 class CorrectnessScore(BaseModel):
     match: Optional[bool]  # None for expects_no_correct_answer queries
     mismatches: list[str]
@@ -185,10 +186,19 @@ def _collect_field_refs(obj: object, refs: list[str]) -> None:
 
 
 def hallucinated_columns(predicted: dict, dataset_ctx) -> list[str]:
-    """Return sorted list of field names in predicted spec not present in the dataset."""
+    """Return sorted list of field names in predicted spec not present in the dataset.
+
+    Fields produced by calculate/window/joinaggregate/aggregate/bin/timeUnit transforms
+    are excluded — they are derived at query time and are not hallucinations.
+    """
+    # Lazy import to avoid the circular chain:
+    # scoring → validation.columns → pipeline.dataset → pipeline/__init__
+    #   → pipeline.retry → validation.pipeline → validation.columns
+    from chart_llm.validation.columns import _collect_derived_fields  # noqa: PLC0415
+
     refs: list[str] = []
     _collect_field_refs(predicted, refs)
-    known = {col.name for col in dataset_ctx.column_schema}
+    known = {col.name for col in dataset_ctx.column_schema} | _collect_derived_fields(predicted)
     return sorted({ref for ref in refs if ref not in known})
 
 

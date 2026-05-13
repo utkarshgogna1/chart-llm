@@ -4,7 +4,9 @@
       "Bash(uv sync *)",
       "Bash(uv run *)",
       "Bash(wait)",
-      "Bash(python3 -c ' *)"
+      "Bash(python3 -c ' *)",
+      "Bash(curl -s http://localhost:11434/api/tags)",
+      "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); print\\([m['name'] for m in d.get\\('models',[]\\)]\\)\")"
     ]
   }
 }

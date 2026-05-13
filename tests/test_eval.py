@@ -836,3 +836,58 @@ def test_calculate_different_as_field_does_not_match():
     }
     score = spec_correctness(pred_wrong, _CALC_BASE)
     assert score.match is False, "Different 'as' field should not match"
+
+
+# ---------------------------------------------------------------------------
+# Test 14: hallucinated_columns skips derive-field aliases (Issue fix)
+# ---------------------------------------------------------------------------
+
+
+def test_hallucinated_columns_skips_calculate_derived_field(simple_ctx):
+    """A field produced by calculate must not be flagged as hallucinated."""
+    spec = {
+        "$schema": _SCHEMA_URL,
+        "data": {"name": "table"},
+        "mark": "point",
+        "transform": [{"calculate": "datum.revenue > 1500 ? 'High' : 'Low'", "as": "tier"}],
+        "encoding": {
+            "x": {"field": "region", "type": "nominal"},
+            "color": {"field": "tier", "type": "nominal"},
+        },
+    }
+    result = hallucinated_columns(spec, simple_ctx)
+    assert result == [], f"tier is calculate-derived, not a hallucination: {result}"
+
+
+def test_hallucinated_columns_flags_field_not_covered_by_calculate(simple_ctx):
+    """A field referenced in encoding that is NOT the 'as' alias of any transform IS hallucinated."""
+    spec = {
+        "$schema": _SCHEMA_URL,
+        "data": {"name": "table"},
+        "mark": "point",
+        "transform": [{"calculate": "datum.revenue > 1500 ? 'High' : 'Low'", "as": "other_field"}],
+        "encoding": {
+            "x": {"field": "region", "type": "nominal"},
+            "color": {"field": "tier", "type": "nominal"},
+        },
+    }
+    result = hallucinated_columns(spec, simple_ctx)
+    assert "tier" in result, f"tier is not derived by any transform, should be flagged: {result}"
+
+
+def test_hallucinated_columns_skips_joinaggregate_derived_field(simple_ctx):
+    """A field produced by joinaggregate must not be flagged as hallucinated."""
+    spec = {
+        "$schema": _SCHEMA_URL,
+        "data": {"name": "table"},
+        "mark": "bar",
+        "transform": [
+            {"joinaggregate": [{"op": "sum", "field": "revenue", "as": "total_revenue"}]}
+        ],
+        "encoding": {
+            "x": {"field": "region", "type": "nominal"},
+            "y": {"field": "total_revenue", "type": "quantitative"},
+        },
+    }
+    result = hallucinated_columns(spec, simple_ctx)
+    assert result == [], f"total_revenue is joinaggregate-derived, not a hallucination: {result}"

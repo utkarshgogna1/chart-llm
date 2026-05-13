@@ -21,15 +21,24 @@ def _collect_field_refs(obj: object, path: str = "") -> list[tuple[str, str]]:
 
 
 def _collect_derived_fields(spec: dict) -> set[str]:
-    """Return field names produced by calculate transforms (the 'as' alias).
+    """Return field names produced by any transform that defines an 'as' alias.
 
+    Covers: calculate, window, joinaggregate, aggregate, bin, timeUnit.
     These are valid encoding references even though they are not in the original
     dataset schema — the transform creates them at query time.
     """
     derived: set[str] = set()
     for step in spec.get("transform") or []:
-        if isinstance(step, dict) and "calculate" in step and isinstance(step.get("as"), str):
+        if not isinstance(step, dict):
+            continue
+        # calculate / bin / timeUnit — top-level scalar "as"
+        if isinstance(step.get("as"), str):
             derived.add(step["as"])
+        # window / joinaggregate / aggregate — "as" lives inside each operation object
+        for key in ("window", "joinaggregate", "aggregate"):
+            for op in step.get(key) or []:
+                if isinstance(op, dict) and isinstance(op.get("as"), str):
+                    derived.add(op["as"])
     # Handle nested specs (faceted views)
     nested = spec.get("spec")
     if isinstance(nested, dict):
