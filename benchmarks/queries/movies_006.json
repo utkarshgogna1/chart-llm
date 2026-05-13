@@ -1,0 +1,30 @@
+{
+  "id": "movies_006",
+  "dataset": "movies.csv",
+  "question": "What percentage of movies in each genre are sequels? Show as a bar chart.",
+  "ground_truth_spec": {
+    "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+    "data": {
+      "name": "table"
+    },
+    "mark": "bar",
+    "encoding": {
+      "x": {
+        "field": "genre",
+        "type": "nominal"
+      },
+      "y": {
+        "field": "is_sequel",
+        "aggregate": "mean",
+        "type": "quantitative"
+      }
+    }
+  },
+  "tags": [
+    "bar",
+    "aggregation",
+    "boolean-as-rate"
+  ],
+  "difficulty": "medium",
+  "expects_no_correct_answer": false
+}

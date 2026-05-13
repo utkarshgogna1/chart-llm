@@ -2,7 +2,7 @@
 
 import json
 from pathlib import Path
-from typing import Literal
+from typing import Literal, Optional
 
 from pydantic import BaseModel
 
@@ -11,9 +11,10 @@ class BenchmarkQuery(BaseModel):
     id: str
     dataset: str
     question: str
-    ground_truth_spec: dict
+    ground_truth_spec: Optional[dict] = None
     tags: list[str]
     difficulty: Literal["easy", "medium", "hard"]
+    expects_no_correct_answer: bool = False
 
 
 def load_benchmark(directory: Path) -> list[BenchmarkQuery]:

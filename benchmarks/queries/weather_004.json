@@ -1,0 +1,36 @@
+{
+  "id": "weather_004",
+  "dataset": "weather.csv",
+  "question": "Show monthly average high temperature for each city as a multi-line chart (one line per city).",
+  "ground_truth_spec": {
+    "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+    "data": {
+      "name": "table"
+    },
+    "mark": "line",
+    "encoding": {
+      "x": {
+        "field": "date",
+        "type": "temporal",
+        "timeUnit": "month"
+      },
+      "y": {
+        "field": "temp_high_f",
+        "aggregate": "mean",
+        "type": "quantitative"
+      },
+      "color": {
+        "field": "city",
+        "type": "nominal"
+      }
+    }
+  },
+  "tags": [
+    "line",
+    "temporal",
+    "time-unit",
+    "multi-series"
+  ],
+  "difficulty": "medium",
+  "expects_no_correct_answer": false
+}

@@ -1,0 +1,39 @@
+{
+  "id": "weather_007",
+  "dataset": "weather.csv",
+  "question": "Show the temperature range (high minus low) per day in Phoenix as an area chart.",
+  "ground_truth_spec": {
+    "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+    "data": {
+      "name": "table"
+    },
+    "transform": [
+      {
+        "filter": "datum.city === 'Phoenix'"
+      },
+      {
+        "calculate": "datum.temp_high_f - datum.temp_low_f",
+        "as": "temp_range"
+      }
+    ],
+    "mark": "area",
+    "encoding": {
+      "x": {
+        "field": "date",
+        "type": "temporal"
+      },
+      "y": {
+        "field": "temp_range",
+        "type": "quantitative"
+      }
+    }
+  },
+  "tags": [
+    "area",
+    "filter",
+    "calculate",
+    "temporal"
+  ],
+  "difficulty": "hard",
+  "expects_no_correct_answer": false
+}

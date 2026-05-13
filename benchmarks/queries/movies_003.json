@@ -1,0 +1,28 @@
+{
+  "id": "movies_003",
+  "dataset": "movies.csv",
+  "question": "Show box office revenue vs IMDB rating as a scatter plot.",
+  "ground_truth_spec": {
+    "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+    "data": {
+      "name": "table"
+    },
+    "mark": "point",
+    "encoding": {
+      "x": {
+        "field": "imdb_rating",
+        "type": "quantitative"
+      },
+      "y": {
+        "field": "box_office_usd",
+        "type": "quantitative"
+      }
+    }
+  },
+  "tags": [
+    "scatter",
+    "two-quantitative"
+  ],
+  "difficulty": "easy",
+  "expects_no_correct_answer": false
+}

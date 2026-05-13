@@ -9,7 +9,7 @@ from pydantic import BaseModel
 
 
 class CorrectnessScore(BaseModel):
-    match: bool
+    match: Optional[bool]  # None for expects_no_correct_answer queries
     mismatches: list[str]
 
 
@@ -26,14 +26,50 @@ _ENCODING_KEYS = ("field", "type", "aggregate", "bin", "timeUnit")
 
 
 def _extract_mark(spec: dict) -> str:
-    mark = spec.get("mark", "")
-    if isinstance(mark, dict):
-        return mark.get("type", "")
-    return str(mark)
+    if "mark" in spec:
+        mark = spec["mark"]
+        if isinstance(mark, dict):
+            return mark.get("type", "")
+        return str(mark)
+    for key in ("spec", "layer", "hconcat", "vconcat"):
+        child = spec.get(key)
+        if isinstance(child, list) and child:
+            return _extract_mark(child[0])
+        if isinstance(child, dict):
+            return _extract_mark(child)
+    return ""
+
+
+def _extract_encoding(spec: dict) -> dict:
+    """Recursively find the encoding dict, drilling into facet/layer wrappers."""
+    if "encoding" in spec:
+        return spec["encoding"] or {}
+    for key in ("spec", "layer", "hconcat", "vconcat"):
+        child = spec.get(key)
+        if isinstance(child, list) and child:
+            return _extract_encoding(child[0])
+        if isinstance(child, dict):
+            return _extract_encoding(child)
+    return {}
+
+
+def _extract_facet_field(spec: dict) -> Optional[str]:
+    """Return the field name from a top-level facet/row/column, or None."""
+    for key in ("facet", "row", "column"):
+        val = spec.get(key)
+        if isinstance(val, dict) and "field" in val:
+            return val["field"]
+        if isinstance(val, str):
+            return val
+    return None
 
 
 def _encoding_fingerprint(channel: dict) -> dict:
-    return {k: channel[k] for k in _ENCODING_KEYS if k in channel}
+    fp = {k: channel[k] for k in _ENCODING_KEYS if k in channel}
+    # count aggregate is always a row count regardless of which field is named
+    if fp.get("aggregate") == "count":
+        fp.pop("field", None)
+    return fp
 
 
 def _compare_encoding(predicted_enc: dict, gt_enc: dict) -> list[str]:
@@ -76,6 +112,9 @@ def _normalize_filter(f: object) -> object:
 def _normalize_transform_step(step: dict) -> dict:
     if "filter" in step:
         return {"filter": _normalize_filter(step["filter"])}
+    if "calculate" in step and "as" in step:
+        # Match on output field name only — expression text may vary
+        return {"as": step["as"], "calculate": True}
     return step
 
 
@@ -107,10 +146,18 @@ def spec_correctness(predicted: dict, ground_truth: dict) -> CorrectnessScore:
 
     mismatches.extend(
         _compare_encoding(
-            predicted.get("encoding") or {},
-            ground_truth.get("encoding") or {},
+            _extract_encoding(predicted),
+            _extract_encoding(ground_truth),
         )
     )
+
+    gt_facet = _extract_facet_field(ground_truth)
+    if gt_facet is not None:
+        pred_facet = _extract_facet_field(predicted)
+        if pred_facet != gt_facet:
+            mismatches.append(
+                f"facet field mismatch: predicted={pred_facet!r}, expected={gt_facet!r}"
+            )
 
     gt_transforms = ground_truth.get("transform") or []
     if gt_transforms:

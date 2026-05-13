@@ -1,0 +1,37 @@
+{
+  "id": "sales_006",
+  "dataset": "sales.csv",
+  "question": "Show total revenue over time, with separate panels for each region.",
+  "ground_truth_spec": {
+    "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+    "data": {
+      "name": "table"
+    },
+    "facet": {
+      "field": "region",
+      "type": "nominal"
+    },
+    "spec": {
+      "mark": "line",
+      "encoding": {
+        "x": {
+          "field": "date",
+          "type": "temporal"
+        },
+        "y": {
+          "field": "revenue",
+          "aggregate": "sum",
+          "type": "quantitative"
+        }
+      }
+    }
+  },
+  "tags": [
+    "line",
+    "facet",
+    "temporal",
+    "aggregation"
+  ],
+  "difficulty": "hard",
+  "expects_no_correct_answer": false
+}

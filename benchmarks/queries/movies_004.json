@@ -1,0 +1,33 @@
+{
+  "id": "movies_004",
+  "dataset": "movies.csv",
+  "question": "What are the top 5 studios by total box office revenue? Show as a horizontal bar chart, sorted descending.",
+  "ground_truth_spec": {
+    "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+    "data": {
+      "name": "table"
+    },
+    "mark": "bar",
+    "encoding": {
+      "y": {
+        "field": "studio",
+        "type": "nominal",
+        "sort": "-x"
+      },
+      "x": {
+        "field": "box_office_usd",
+        "aggregate": "sum",
+        "type": "quantitative"
+      }
+    }
+  },
+  "tags": [
+    "bar",
+    "horizontal",
+    "aggregation",
+    "top-n",
+    "sort"
+  ],
+  "difficulty": "medium",
+  "expects_no_correct_answer": false
+}

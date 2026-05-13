@@ -1,0 +1,35 @@
+{
+  "id": "movies_005",
+  "dataset": "movies.csv",
+  "question": "Show total box office revenue per genre, but only for movies released after 2010, as a bar chart.",
+  "ground_truth_spec": {
+    "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+    "data": {
+      "name": "table"
+    },
+    "transform": [
+      {
+        "filter": "datum.release_year > 2010"
+      }
+    ],
+    "mark": "bar",
+    "encoding": {
+      "x": {
+        "field": "genre",
+        "type": "nominal"
+      },
+      "y": {
+        "field": "box_office_usd",
+        "aggregate": "sum",
+        "type": "quantitative"
+      }
+    }
+  },
+  "tags": [
+    "bar",
+    "filter",
+    "aggregation"
+  ],
+  "difficulty": "medium",
+  "expects_no_correct_answer": false
+}

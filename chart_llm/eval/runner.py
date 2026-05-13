@@ -112,12 +112,21 @@ def _run_single(
         stop_reason = run.stop_reason
         error_message = run.error  # propagate API/network errors from the retry loop
 
+    no_answer = query.expects_no_correct_answer
     if final_spec is not None:
-        correctness = spec_correctness(final_spec, query.ground_truth_spec)
+        correctness = (
+            CorrectnessScore(match=None, mismatches=[])
+            if no_answer
+            else spec_correctness(final_spec, query.ground_truth_spec)
+        )
         hall = _check_hallucinated(final_spec, dataset_ctx)
         rc = _check_render(final_spec, dataset_ctx.df)
     else:
-        correctness = CorrectnessScore(match=False, mismatches=["no spec generated"])
+        correctness = (
+            CorrectnessScore(match=None, mismatches=[])
+            if no_answer
+            else CorrectnessScore(match=False, mismatches=["no spec generated"])
+        )
         hall = []
         rc = RenderCheck(ok=False, error="no spec generated")
 

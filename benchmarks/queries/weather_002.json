@@ -1,0 +1,34 @@
+{
+  "id": "weather_002",
+  "dataset": "weather.csv",
+  "question": "Plot the daily high temperature in Boston over time.",
+  "ground_truth_spec": {
+    "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+    "data": {
+      "name": "table"
+    },
+    "transform": [
+      {
+        "filter": "datum.city === 'Boston'"
+      }
+    ],
+    "mark": "line",
+    "encoding": {
+      "x": {
+        "field": "date",
+        "type": "temporal"
+      },
+      "y": {
+        "field": "temp_high_f",
+        "type": "quantitative"
+      }
+    }
+  },
+  "tags": [
+    "line",
+    "temporal",
+    "filter"
+  ],
+  "difficulty": "easy",
+  "expects_no_correct_answer": false
+}

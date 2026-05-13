@@ -1,0 +1,28 @@
+{
+  "id": "weather_008",
+  "dataset": "weather.csv",
+  "question": "What is the correlation between wind speed and precipitation across all cities?",
+  "ground_truth_spec": {
+    "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+    "data": {
+      "name": "table"
+    },
+    "mark": "point",
+    "encoding": {
+      "x": {
+        "field": "wind_mph",
+        "type": "quantitative"
+      },
+      "y": {
+        "field": "precipitation_in",
+        "type": "quantitative"
+      }
+    }
+  },
+  "tags": [
+    "scatter",
+    "abstract-language"
+  ],
+  "difficulty": "hard",
+  "expects_no_correct_answer": false
+}

@@ -1,0 +1,40 @@
+{
+  "id": "weather_006",
+  "dataset": "weather.csv",
+  "question": "Compare the proportion of rainy days in Seattle vs Miami. Show as a bar chart.",
+  "ground_truth_spec": {
+    "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+    "data": {
+      "name": "table"
+    },
+    "transform": [
+      {
+        "calculate": "datum.conditions === 'Rainy' ? 1 : 0",
+        "as": "is_rainy"
+      },
+      {
+        "filter": "datum.city === 'Seattle' || datum.city === 'Miami'"
+      }
+    ],
+    "mark": "bar",
+    "encoding": {
+      "x": {
+        "field": "city",
+        "type": "nominal"
+      },
+      "y": {
+        "field": "is_rainy",
+        "aggregate": "mean",
+        "type": "quantitative"
+      }
+    }
+  },
+  "tags": [
+    "bar",
+    "filter",
+    "calculate",
+    "rate"
+  ],
+  "difficulty": "medium",
+  "expects_no_correct_answer": false
+}

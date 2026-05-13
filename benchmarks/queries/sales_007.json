@@ -1,0 +1,42 @@
+{
+  "id": "sales_007",
+  "dataset": "sales.csv",
+  "question": "Show me the seasonality of revenue with bars colored by whether it's Q1, Q2, Q3, or Q4.",
+  "ground_truth_spec": {
+    "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+    "data": {
+      "name": "table"
+    },
+    "transform": [
+      {
+        "calculate": "datum.date >= '2024-01-01' && datum.date <= '2024-03-31' ? 'Q1' : datum.date <= '2024-06-30' ? 'Q2' : datum.date <= '2024-09-30' ? 'Q3' : 'Q4'",
+        "as": "quarter"
+      }
+    ],
+    "mark": "bar",
+    "encoding": {
+      "x": {
+        "field": "date",
+        "type": "temporal",
+        "timeUnit": "month"
+      },
+      "y": {
+        "field": "revenue",
+        "aggregate": "sum",
+        "type": "quantitative"
+      },
+      "color": {
+        "field": "quarter",
+        "type": "nominal"
+      }
+    }
+  },
+  "tags": [
+    "bar",
+    "temporal",
+    "calculate",
+    "derived-field"
+  ],
+  "difficulty": "hard",
+  "expects_no_correct_answer": false
+}

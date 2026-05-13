@@ -1,0 +1,30 @@
+{
+  "id": "weather_003",
+  "dataset": "weather.csv",
+  "question": "Compare average daily precipitation across the four cities.",
+  "ground_truth_spec": {
+    "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+    "data": {
+      "name": "table"
+    },
+    "mark": "bar",
+    "encoding": {
+      "x": {
+        "field": "city",
+        "type": "nominal"
+      },
+      "y": {
+        "field": "precipitation_in",
+        "aggregate": "mean",
+        "type": "quantitative"
+      }
+    }
+  },
+  "tags": [
+    "bar",
+    "aggregation",
+    "categorical"
+  ],
+  "difficulty": "easy",
+  "expects_no_correct_answer": false
+}

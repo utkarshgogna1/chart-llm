@@ -70,15 +70,27 @@ class _FakeClient(LLMModel):
 # ---------------------------------------------------------------------------
 
 
-def test_load_benchmark_reads_5_queries():
+def test_load_benchmark_reads_23_queries():
     queries = load_benchmark(_QUERIES_DIR)
-    assert len(queries) == 5
+    assert len(queries) == 23
     assert all(isinstance(q, BenchmarkQuery) for q in queries)
 
 
-def test_load_benchmark_ids():
+def test_load_benchmark_contains_original_5_ids():
     ids = {q.id for q in load_benchmark(_QUERIES_DIR)}
-    assert ids == {"sales_001", "sales_002", "sales_003", "sales_004", "sales_005"}
+    assert {"sales_001", "sales_002", "sales_003", "sales_004", "sales_005"}.issubset(ids)
+
+
+def test_load_benchmark_new_query_ids():
+    ids = {q.id for q in load_benchmark(_QUERIES_DIR)}
+    new_ids = {
+        "movies_001", "movies_002", "movies_003", "movies_004", "movies_005",
+        "movies_006", "movies_007", "movies_008",
+        "weather_001", "weather_002", "weather_003", "weather_004",
+        "weather_005", "weather_006", "weather_007", "weather_008",
+        "sales_006", "sales_007",
+    }
+    assert new_ids.issubset(ids)
 
 
 def test_benchmark_query_sales_001_fields():
@@ -92,7 +104,16 @@ def test_benchmark_query_sales_001_fields():
 
 def test_benchmark_query_ground_truth_has_data_name():
     for q in load_benchmark(_QUERIES_DIR):
+        if q.expects_no_correct_answer or q.ground_truth_spec is None:
+            continue
         assert q.ground_truth_spec["data"] == {"name": "table"}, f"{q.id} missing data.name=table"
+
+
+def test_benchmark_query_movies_007_no_answer():
+    queries = load_benchmark(_QUERIES_DIR)
+    q = next(q for q in queries if q.id == "movies_007")
+    assert q.expects_no_correct_answer is True
+    assert q.ground_truth_spec is None
 
 
 def test_benchmark_query_difficulties_valid():
@@ -253,7 +274,7 @@ def test_render_check_fails_gracefully_on_exception():
 # ---------------------------------------------------------------------------
 
 
-def test_run_benchmark_produces_10_records(tmp_path):
+def test_run_benchmark_produces_46_records(tmp_path):
     output = tmp_path / "results.jsonl"
     with patch("chart_llm.eval.runner.get_client", return_value=_FakeClient()):
         run_benchmark(
@@ -266,7 +287,7 @@ def test_run_benchmark_produces_10_records(tmp_path):
             resume=False,
         )
     lines = [l for l in output.read_text().splitlines() if l.strip()]
-    assert len(lines) == 10
+    assert len(lines) == 46
 
 
 def test_run_benchmark_records_are_parseable(tmp_path):
@@ -284,7 +305,7 @@ def test_run_benchmark_records_are_parseable(tmp_path):
     for line in output.read_text().splitlines():
         if line.strip():
             rec = BenchmarkRecord.model_validate_json(line)
-            assert rec.query_id.startswith("sales_")
+            assert rec.query_id
 
 
 def test_run_benchmark_records_cover_all_queries(tmp_path):
@@ -304,7 +325,14 @@ def test_run_benchmark_records_cover_all_queries(tmp_path):
         for l in output.read_text().splitlines()
         if l.strip()
     }
-    assert ids == {"sales_001", "sales_002", "sales_003", "sales_004", "sales_005"}
+    assert ids == {
+        "sales_001", "sales_002", "sales_003", "sales_004", "sales_005",
+        "sales_006", "sales_007",
+        "movies_001", "movies_002", "movies_003", "movies_004", "movies_005",
+        "movies_006", "movies_007", "movies_008",
+        "weather_001", "weather_002", "weather_003", "weather_004", "weather_005",
+        "weather_006", "weather_007", "weather_008",
+    }
 
 
 # ---------------------------------------------------------------------------
@@ -332,8 +360,8 @@ def test_run_benchmark_resume_skips_existing(tmp_path):
     _run()
     count_after_second = len([l for l in output.read_text().splitlines() if l.strip()])
 
-    assert count_after_first == 5
-    assert count_after_second == 5  # no duplicates added
+    assert count_after_first == 23
+    assert count_after_second == 23  # no duplicates added
 
 
 def test_run_benchmark_no_resume_overwrites(tmp_path):
@@ -354,7 +382,7 @@ def test_run_benchmark_no_resume_overwrites(tmp_path):
     _run(resume=True)
     _run(resume=False)  # resume=False → does not skip existing keys → appends duplicates
     count = len([l for l in output.read_text().splitlines() if l.strip()])
-    assert count == 10  # 5 + 5
+    assert count == 46  # 23 + 23
 
 
 # ---------------------------------------------------------------------------
@@ -564,3 +592,247 @@ def test_summary_table_succeeded_counts_final_validated(tmp_path):
     assert cells[3] == "1"   # Succeeded (only final_validated=True)
     assert cells[4] == "1"   # Errored (error_message is not None)
     assert cells[5] == "1"   # No Spec (final_validated=False AND error_message is None)
+
+
+# ---------------------------------------------------------------------------
+# Test 9: all ground-truth specs pass our validators
+# ---------------------------------------------------------------------------
+
+
+def test_all_ground_truth_specs_pass_validation():
+    """Every query with a ground_truth_spec must pass our full validation pipeline.
+
+    This catches future regressions where a GT spec becomes invalid after a
+    validator is tightened (e.g., new structural rule, stricter column checking).
+    """
+    from chart_llm.pipeline.dataset import build_dataset_context
+    from chart_llm.validation.pipeline import run_validation
+
+    queries = load_benchmark(_QUERIES_DIR)
+    failures = []
+    for q in queries:
+        if q.expects_no_correct_answer or q.ground_truth_spec is None:
+            continue
+        ctx = build_dataset_context(_DATASETS_DIR / q.dataset)
+        result = run_validation(q.ground_truth_spec, ctx)
+        if not result.ok:
+            errs = "; ".join(f"{e.code}@{e.path}" for e in result.errors[:3])
+            failures.append(f"{q.id} failed at {result.stage_failed}: {errs}")
+    assert not failures, "Ground-truth specs failed validation:\n" + "\n".join(failures)
+
+
+# ---------------------------------------------------------------------------
+# Test 10: no-answer query handling
+# ---------------------------------------------------------------------------
+
+
+def _make_no_answer_record(
+    final_spec,
+    hallucinated: list[str],
+) -> BenchmarkRecord:
+    return BenchmarkRecord(
+        query_id="movies_007",
+        model="test-model",
+        mode="baseline",
+        attempts=1,
+        final_validated=False,
+        final_spec=final_spec,
+        correctness=CorrectnessScore(match=None, mismatches=[]),
+        hallucinated_columns=hallucinated,
+        render_check=RenderCheck(ok=False),
+        latency_ms=10.0,
+        prompt_tokens=5,
+        completion_tokens=5,
+        stop_reason="baseline",
+        error_message=None,
+    )
+
+
+def test_no_answer_honest_when_model_produces_no_spec():
+    from chart_llm.eval.report import _failure_category
+    rec = _make_no_answer_record(final_spec=None, hallucinated=[])
+    assert _failure_category(rec) == "no-answer-honest"
+
+
+def test_no_answer_hallucinated_when_model_produces_spec():
+    from chart_llm.eval.report import _failure_category
+    rec = _make_no_answer_record(final_spec=_VALID_SPEC, hallucinated=["director"])
+    assert _failure_category(rec) == "no-answer-hallucinated"
+
+
+def test_no_answer_correctness_match_is_none():
+    """correctness.match must be None (not False) for no-answer queries."""
+    rec = _make_no_answer_record(final_spec=None, hallucinated=[])
+    assert rec.correctness.match is None
+
+
+# ---------------------------------------------------------------------------
+# Test 11: count-form equivalence (Issue 3)
+# ---------------------------------------------------------------------------
+
+_COUNT_GT_FIELDLESS = {
+    "$schema": _SCHEMA_URL,
+    "data": {"name": "table"},
+    "mark": "bar",
+    "encoding": {
+        "x": {"field": "genre", "type": "nominal"},
+        "y": {"aggregate": "count", "type": "quantitative"},
+    },
+}
+
+
+def test_count_fieldless_gt_vs_fielded_prediction_matches():
+    """GT with fieldless count should match prediction that names a field."""
+    predicted = {
+        **_COUNT_GT_FIELDLESS,
+        "encoding": {
+            "x": {"field": "genre", "type": "nominal"},
+            "y": {"field": "title", "aggregate": "count", "type": "quantitative"},
+        },
+    }
+    score = spec_correctness(predicted, _COUNT_GT_FIELDLESS)
+    assert score.match is True, f"Fieldless GT should match fielded prediction: {score.mismatches}"
+
+
+def test_count_fielded_gt_vs_fieldless_prediction_matches():
+    """GT with field=title count should match prediction without a field."""
+    gt_fielded = {
+        **_COUNT_GT_FIELDLESS,
+        "encoding": {
+            "x": {"field": "genre", "type": "nominal"},
+            "y": {"field": "title", "aggregate": "count", "type": "quantitative"},
+        },
+    }
+    predicted = {
+        **_COUNT_GT_FIELDLESS,
+        "encoding": {
+            "x": {"field": "genre", "type": "nominal"},
+            "y": {"aggregate": "count", "type": "quantitative"},
+        },
+    }
+    score = spec_correctness(predicted, gt_fielded)
+    assert score.match is True, f"Fielded GT should match fieldless prediction: {score.mismatches}"
+
+
+def test_count_different_field_still_matches():
+    """Count on a different field is still a row count — must match."""
+    gt_fielded = {
+        **_COUNT_GT_FIELDLESS,
+        "encoding": {
+            "x": {"field": "genre", "type": "nominal"},
+            "y": {"field": "title", "aggregate": "count", "type": "quantitative"},
+        },
+    }
+    predicted = {
+        **_COUNT_GT_FIELDLESS,
+        "encoding": {
+            "x": {"field": "genre", "type": "nominal"},
+            "y": {"field": "studio", "aggregate": "count", "type": "quantitative"},
+        },
+    }
+    score = spec_correctness(predicted, gt_fielded)
+    assert score.match is True, f"Count on different field should match: {score.mismatches}"
+
+
+# ---------------------------------------------------------------------------
+# Test 12: faceted spec scoring (Issue 4)
+# ---------------------------------------------------------------------------
+
+_FACET_GT = {
+    "$schema": _SCHEMA_URL,
+    "data": {"name": "table"},
+    "facet": {"field": "region", "type": "nominal"},
+    "spec": {
+        "mark": "line",
+        "encoding": {
+            "x": {"field": "date", "type": "temporal"},
+            "y": {"field": "revenue", "aggregate": "sum", "type": "quantitative"},
+        },
+    },
+}
+
+
+def test_faceted_gt_identical_prediction_matches():
+    score = spec_correctness(_FACET_GT, _FACET_GT)
+    assert score.match is True, f"Identical faceted specs should match: {score.mismatches}"
+
+
+def test_faceted_gt_non_faceted_prediction_does_not_match():
+    """Critical regression test: non-faceted prediction must fail faceted GT."""
+    predicted_flat = {
+        "$schema": _SCHEMA_URL,
+        "data": {"name": "table"},
+        "mark": "line",
+        "encoding": {
+            "x": {"field": "date", "type": "temporal"},
+            "y": {"field": "revenue", "aggregate": "sum", "type": "quantitative"},
+        },
+    }
+    score = spec_correctness(predicted_flat, _FACET_GT)
+    assert score.match is False, "Non-faceted prediction must not match faceted GT"
+    assert any("facet" in m for m in score.mismatches), f"Expected facet mismatch in: {score.mismatches}"
+
+
+def test_faceted_gt_wrong_facet_field_does_not_match():
+    predicted = {
+        **_FACET_GT,
+        "facet": {"field": "product", "type": "nominal"},
+    }
+    score = spec_correctness(predicted, _FACET_GT)
+    assert score.match is False, "Wrong facet field should not match"
+    assert any("facet" in m for m in score.mismatches), f"Expected facet mismatch in: {score.mismatches}"
+
+
+# ---------------------------------------------------------------------------
+# Test 13: calculate expression leniency (Issue 5)
+# ---------------------------------------------------------------------------
+
+_CALC_BASE = {
+    "$schema": _SCHEMA_URL,
+    "data": {"name": "table"},
+    "mark": "point",
+    "transform": [
+        {"calculate": "datum.imdb_rating > 7.0 ? 'High' : 'Low'", "as": "rating_tier"}
+    ],
+    "encoding": {
+        "x": {"field": "box_office_usd", "type": "quantitative"},
+        "y": {"field": "runtime_min", "type": "quantitative"},
+        "color": {"field": "rating_tier", "type": "nominal"},
+    },
+}
+
+
+def test_calculate_different_expression_same_as_matches():
+    """Prediction with a slightly different calculate expression but same 'as' must match."""
+    pred_a = {
+        **_CALC_BASE,
+        "transform": [
+            {"calculate": "datum.imdb_rating >= 7 ? 'High' : 'Low'", "as": "rating_tier"}
+        ],
+    }
+    score = spec_correctness(pred_a, _CALC_BASE)
+    assert score.match is True, f"pred_a should match GT: {score.mismatches}"
+
+
+def test_calculate_different_values_same_as_matches():
+    """Even lowercased output values don't matter — match is on 'as' key only."""
+    pred_b = {
+        **_CALC_BASE,
+        "transform": [
+            {"calculate": "datum.imdb_rating > 7 ? 'high' : 'low'", "as": "rating_tier"}
+        ],
+    }
+    score = spec_correctness(pred_b, _CALC_BASE)
+    assert score.match is True, f"pred_b should match GT: {score.mismatches}"
+
+
+def test_calculate_different_as_field_does_not_match():
+    """A calculate step with a different output field name must NOT match."""
+    pred_wrong = {
+        **_CALC_BASE,
+        "transform": [
+            {"calculate": "datum.imdb_rating > 7.0 ? 'High' : 'Low'", "as": "quality_band"}
+        ],
+    }
+    score = spec_correctness(pred_wrong, _CALC_BASE)
+    assert score.match is False, "Different 'as' field should not match"

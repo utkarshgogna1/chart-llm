@@ -1,0 +1,32 @@
+{
+  "id": "weather_005",
+  "dataset": "weather.csv",
+  "question": "Which days in 2024 had the most precipitation across all cities combined? Show the top 10 as a bar chart.",
+  "ground_truth_spec": {
+    "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+    "data": {
+      "name": "table"
+    },
+    "mark": "bar",
+    "encoding": {
+      "x": {
+        "field": "date",
+        "type": "temporal",
+        "sort": "-y"
+      },
+      "y": {
+        "field": "precipitation_in",
+        "aggregate": "sum",
+        "type": "quantitative"
+      }
+    }
+  },
+  "tags": [
+    "bar",
+    "temporal",
+    "top-n",
+    "aggregation"
+  ],
+  "difficulty": "medium",
+  "expects_no_correct_answer": false
+}

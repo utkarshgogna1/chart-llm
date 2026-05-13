@@ -1,0 +1,13 @@
+{
+  "id": "movies_007",
+  "dataset": "movies.csv",
+  "question": "Show me a chart of the most prolific directors by total box office revenue.",
+  "ground_truth_spec": null,
+  "tags": [
+    "no-answer",
+    "missing-column",
+    "hallucination-test"
+  ],
+  "difficulty": "hard",
+  "expects_no_correct_answer": true
+}

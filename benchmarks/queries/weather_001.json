@@ -1,0 +1,30 @@
+{
+  "id": "weather_001",
+  "dataset": "weather.csv",
+  "question": "Show average high temperature by city.",
+  "ground_truth_spec": {
+    "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+    "data": {
+      "name": "table"
+    },
+    "mark": "bar",
+    "encoding": {
+      "x": {
+        "field": "city",
+        "type": "nominal"
+      },
+      "y": {
+        "field": "temp_high_f",
+        "aggregate": "mean",
+        "type": "quantitative"
+      }
+    }
+  },
+  "tags": [
+    "bar",
+    "aggregation",
+    "categorical"
+  ],
+  "difficulty": "easy",
+  "expects_no_correct_answer": false
+}

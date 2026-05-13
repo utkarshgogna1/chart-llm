@@ -1,0 +1,39 @@
+{
+  "id": "movies_008",
+  "dataset": "movies.csv",
+  "question": "Highlight movies with above-average IMDB ratings as a scatter plot of box office vs runtime.",
+  "ground_truth_spec": {
+    "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+    "data": {
+      "name": "table"
+    },
+    "transform": [
+      {
+        "calculate": "datum.imdb_rating > 7.0 ? 'High' : 'Low'",
+        "as": "rating_tier"
+      }
+    ],
+    "mark": "point",
+    "encoding": {
+      "x": {
+        "field": "runtime_min",
+        "type": "quantitative"
+      },
+      "y": {
+        "field": "box_office_usd",
+        "type": "quantitative"
+      },
+      "color": {
+        "field": "rating_tier",
+        "type": "nominal"
+      }
+    }
+  },
+  "tags": [
+    "scatter",
+    "calculate",
+    "derived-field"
+  ],
+  "difficulty": "hard",
+  "expects_no_correct_answer": false
+}

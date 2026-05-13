@@ -20,8 +20,25 @@ def _collect_field_refs(obj: object, path: str = "") -> list[tuple[str, str]]:
     return refs
 
 
+def _collect_derived_fields(spec: dict) -> set[str]:
+    """Return field names produced by calculate transforms (the 'as' alias).
+
+    These are valid encoding references even though they are not in the original
+    dataset schema — the transform creates them at query time.
+    """
+    derived: set[str] = set()
+    for step in spec.get("transform") or []:
+        if isinstance(step, dict) and "calculate" in step and isinstance(step.get("as"), str):
+            derived.add(step["as"])
+    # Handle nested specs (faceted views)
+    nested = spec.get("spec")
+    if isinstance(nested, dict):
+        derived |= _collect_derived_fields(nested)
+    return derived
+
+
 def validate_columns(spec: dict, dataset_ctx: DatasetContext) -> ValidationResult:
-    known = {col.name for col in dataset_ctx.column_schema}
+    known = {col.name for col in dataset_ctx.column_schema} | _collect_derived_fields(spec)
     known_list = sorted(known)
     errors: list[ValidationError] = []
 

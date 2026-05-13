@@ -85,6 +85,9 @@ def _delta_str(base: Optional[float], val: Optional[float]) -> str:
 
 
 def _failure_category(rec: BenchmarkRecord) -> str:
+    if rec.correctness.match is None:
+        # no-answer query: correct iff the model produced no spec
+        return "no-answer-honest" if rec.final_spec is None else "no-answer-hallucinated"
     if rec.error_message:
         return "generation_error"
     if rec.final_spec is None:
@@ -242,7 +245,7 @@ def build_report(jsonl_path: Path, out_md_path: Path) -> None:
                     r.model,
                     r.mode,
                     "✓" if r.final_validated else "✗",
-                    "✓" if r.correctness.match else "✗",
+                    "—" if r.correctness.match is None else ("✓" if r.correctness.match else "✗"),
                     str(r.hallucinated_columns) if r.hallucinated_columns else "none",
                     "✓" if r.render_check.ok else "✗",
                     f"{r.latency_ms:.0f} ms",

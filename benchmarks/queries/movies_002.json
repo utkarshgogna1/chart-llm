@@ -1,0 +1,30 @@
+{
+  "id": "movies_002",
+  "dataset": "movies.csv",
+  "question": "Plot average IMDB rating by studio.",
+  "ground_truth_spec": {
+    "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+    "data": {
+      "name": "table"
+    },
+    "mark": "bar",
+    "encoding": {
+      "x": {
+        "field": "studio",
+        "type": "nominal"
+      },
+      "y": {
+        "field": "imdb_rating",
+        "aggregate": "mean",
+        "type": "quantitative"
+      }
+    }
+  },
+  "tags": [
+    "bar",
+    "aggregation",
+    "categorical"
+  ],
+  "difficulty": "easy",
+  "expects_no_correct_answer": false
+}

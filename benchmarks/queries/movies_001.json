@@ -1,0 +1,29 @@
+{
+  "id": "movies_001",
+  "dataset": "movies.csv",
+  "question": "Show the number of movies per genre as a bar chart.",
+  "ground_truth_spec": {
+    "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+    "data": {
+      "name": "table"
+    },
+    "mark": "bar",
+    "encoding": {
+      "x": {
+        "field": "genre",
+        "type": "nominal"
+      },
+      "y": {
+        "aggregate": "count",
+        "type": "quantitative"
+      }
+    }
+  },
+  "tags": [
+    "bar",
+    "count",
+    "categorical"
+  ],
+  "difficulty": "easy",
+  "expects_no_correct_answer": false
+}
