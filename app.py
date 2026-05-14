@@ -22,14 +22,16 @@ with st.sidebar:
         "Model",
         ["gemini-flash", "llama-70b-groq", "llama-8b-local"],
         help="gemini-flash requires GEMINI_API_KEY; llama-70b-groq requires GROQ_API_KEY; "
-             "llama-8b-local requires Ollama running locally.",
+        "llama-8b-local requires Ollama running locally.",
     )
 
     validate = st.toggle("Enable validation + retry loop", value=True)
 
     max_attempts = st.slider(
         "Max retry attempts",
-        min_value=1, max_value=5, value=3,
+        min_value=1,
+        max_value=5,
+        value=3,
         disabled=not validate,
     )
 
@@ -38,7 +40,7 @@ with st.sidebar:
         value=False,
         disabled=not validate,
         help="Add a final render stage to the validation loop. Catches specs that pass "
-             "all other validators but fail to render.",
+        "all other validators but fail to render.",
     )
 
     st.divider()
@@ -69,8 +71,10 @@ except Exception as exc:
 # Dataset preview
 with st.expander("Dataset preview", expanded=False):
     st.dataframe(dataset_ctx.df.head(20), use_container_width=True)
-    cols = {c.name: {"dtype": c.dtype, "unique": c.n_unique, "null": c.n_null}
-            for c in dataset_ctx.column_schema}
+    cols = {
+        c.name: {"dtype": c.dtype, "unique": c.n_unique, "null": c.n_null}
+        for c in dataset_ctx.column_schema
+    }
     st.json(cols)
 
 # Question input
@@ -100,7 +104,13 @@ if validate:
     from chart_llm.pipeline.retry import generate_validated_spec  # noqa: E402
 
     with st.spinner(f"Generating with {model_name} (validation on)…"):
-        run = generate_validated_spec(client, dataset_ctx, question, max_attempts=max_attempts, include_render=check_render)
+        run = generate_validated_spec(
+            client,
+            dataset_ctx,
+            question,
+            max_attempts=max_attempts,
+            include_render=check_render,
+        )
 
     # Per-attempt expanders
     for attempt in run.attempts:
@@ -112,8 +122,14 @@ if validate:
                 st.success("All validation checks passed.")
             else:
                 for err in val.errors:
-                    st.error(f"**[{err.code}]** `{err.path}` — {err.message}"
-                             + (f"\n\n*Suggestion: {err.suggestion}*" if err.suggestion else ""))
+                    st.error(
+                        f"**[{err.code}]** `{err.path}` — {err.message}"
+                        + (
+                            f"\n\n*Suggestion: {err.suggestion}*"
+                            if err.suggestion
+                            else ""
+                        )
+                    )
             if attempt.spec:
                 st.json(attempt.spec)
             else:
@@ -128,7 +144,9 @@ if validate:
     c4.metric("Stop reason", run.stop_reason)
 
     if not run.succeeded:
-        st.error(f"Generation failed after {len(run.attempts)} attempt(s). Try a different question or increase max attempts.")
+        st.error(
+            f"Generation failed after {len(run.attempts)} attempt(s). Try a different question or increase max attempts."
+        )
         st.stop()
 
     final_spec = run.final_spec

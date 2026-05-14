@@ -28,8 +28,11 @@ def _print_dataset_summary(console: Console, dataset_ctx) -> None:
     t.add_column("null", justify="right")
     for col in dataset_ctx.column_schema:
         t.add_row(
-            col.name, col.dtype, ", ".join(col.sample_values),
-            str(col.n_unique), str(col.n_null),
+            col.name,
+            col.dtype,
+            ", ".join(col.sample_values),
+            str(col.n_unique),
+            str(col.n_null),
         )
     console.print(t)
 
@@ -37,12 +40,25 @@ def _print_dataset_summary(console: Console, dataset_ctx) -> None:
 @app.command()
 def generate(
     csv: Path = typer.Argument(..., help="Path to input CSV file"),
-    question: str = typer.Argument(..., help="Natural-language question about the data"),
-    model: str = typer.Option("gemini-flash", help="Model: gemini-flash | llama-70b-groq | llama-8b-local"),
-    output: Path = typer.Option(Path("chart.html"), help="Output HTML path (rendering in Prompt 7)"),
+    question: str = typer.Argument(
+        ..., help="Natural-language question about the data"
+    ),
+    model: str = typer.Option(
+        "gemini-flash", help="Model: gemini-flash | llama-70b-groq | llama-8b-local"
+    ),
+    output: Path = typer.Option(
+        Path("chart.html"), help="Output HTML path (rendering in Prompt 7)"
+    ),
     max_retries: int = typer.Option(3, help="Max validation retry attempts"),
-    validate: bool = typer.Option(False, "--validate", is_flag=True, help="Run validation + retry loop"),
-    check_render: bool = typer.Option(False, "--check-render", is_flag=True, help="Add render check as final validation stage (requires --validate)"),
+    validate: bool = typer.Option(
+        False, "--validate", is_flag=True, help="Run validation + retry loop"
+    ),
+    check_render: bool = typer.Option(
+        False,
+        "--check-render",
+        is_flag=True,
+        help="Add render check as final validation stage (requires --validate)",
+    ),
 ) -> None:
     """Generate a Vega-Lite spec from a CSV and a natural-language question."""
     from chart_llm.models.registry import get_client
@@ -56,6 +72,7 @@ def generate(
 
     if not validate:
         from chart_llm.pipeline.generate import generate_spec
+
         with console.status(f"[bold blue]Generating with {model}…[/bold blue]"):
             result = generate_spec(client, dataset_ctx, question)
         console.print("\n[bold green]Generated Vega-Lite spec:[/bold green]")
@@ -70,14 +87,24 @@ def generate(
         if result.completion_tokens is not None:
             stats.add_row("completion tokens", str(result.completion_tokens))
         console.print(stats)
-        console.print("\n[dim]Run with --validate to enable the validation + retry loop.[/dim]")
+        console.print(
+            "\n[dim]Run with --validate to enable the validation + retry loop.[/dim]"
+        )
         return
 
     # ── Validated path ────────────────────────────────────────────────────────
     from chart_llm.pipeline.retry import generate_validated_spec
 
-    with console.status(f"[bold blue]Generating with {model} (validation on)…[/bold blue]"):
-        run = generate_validated_spec(client, dataset_ctx, question, max_attempts=max_retries, include_render=check_render)
+    with console.status(
+        f"[bold blue]Generating with {model} (validation on)…[/bold blue]"
+    ):
+        run = generate_validated_spec(
+            client,
+            dataset_ctx,
+            question,
+            max_attempts=max_retries,
+            include_render=check_render,
+        )
 
     console.print()
     for attempt in run.attempts:
@@ -94,12 +121,14 @@ def generate(
                     lines.append(f"    [dim]→ {err.suggestion}[/dim]")
             body = "\n".join(lines)
             border = "red"
-        console.print(Panel(
-            body,
-            title=f"Attempt {attempt.attempt_number} / {len(run.attempts)}",
-            border_style=border,
-            expand=False,
-        ))
+        console.print(
+            Panel(
+                body,
+                title=f"Attempt {attempt.attempt_number} / {len(run.attempts)}",
+                border_style=border,
+                expand=False,
+            )
+        )
 
     if run.succeeded:
         console.print("\n[bold green]Final spec:[/bold green]")
@@ -123,13 +152,22 @@ def generate(
 def render(
     spec_file: Path = typer.Argument(..., help="Path to a saved JSON spec file"),
     csv: Path = typer.Argument(..., help="Path to the source CSV"),
-    out: Path = typer.Option(Path("chart.html"), help="Output path (.html, .png, or .svg)"),
-    expected_data_name: str = typer.Option("table", help="Expected data.name value in the spec"),
+    out: Path = typer.Option(
+        Path("chart.html"), help="Output path (.html, .png, or .svg)"
+    ),
+    expected_data_name: str = typer.Option(
+        "table", help="Expected data.name value in the spec"
+    ),
     scale: float = typer.Option(2.0, help="Scale factor for PNG output"),
 ) -> None:
     """Render a Vega-Lite spec + CSV to HTML, PNG, or SVG."""
     from chart_llm.pipeline.dataset import build_dataset_context
-    from chart_llm.rendering import RenderError, render_to_html, render_to_png, render_to_svg
+    from chart_llm.rendering import (
+        RenderError,
+        render_to_html,
+        render_to_png,
+        render_to_svg,
+    )
 
     console = Console()
     spec = json.loads(spec_file.read_text())
@@ -170,7 +208,9 @@ def bench_run(
     datasets_dir: Path = typer.Option(
         Path("benchmarks/datasets"), help="Directory containing CSV datasets"
     ),
-    no_resume: bool = typer.Option(False, "--no-resume", help="Re-run already-recorded triples"),
+    no_resume: bool = typer.Option(
+        False, "--no-resume", help="Re-run already-recorded triples"
+    ),
 ) -> None:
     """Run the benchmark across models and modes, appending results to a JSONL file."""
     from chart_llm.eval.runner import run_benchmark as _run
@@ -192,7 +232,9 @@ def bench_run(
         max_attempts=max_attempts,
         resume=not no_resume,
     )
-    console.print(f"\n[bold green]✓[/bold green] Results written to [bold]{output}[/bold]")
+    console.print(
+        f"\n[bold green]✓[/bold green] Results written to [bold]{output}[/bold]"
+    )
 
 
 @bench_app.command("report")
@@ -263,7 +305,9 @@ def bench_inspect(
 
     queries = {q.id: q for q in load_benchmark(queries_dir)}
     if query_id not in queries:
-        console.print(f"[bold red]Error:[/bold red] Query {query_id!r} not found in {queries_dir}")
+        console.print(
+            f"[bold red]Error:[/bold red] Query {query_id!r} not found in {queries_dir}"
+        )
         raise typer.Exit(code=1)
 
     ground_truth = queries[query_id].ground_truth_spec
@@ -286,7 +330,8 @@ def bench_inspect(
 
     def _normalize_for_diff(spec: dict) -> str:
         stripped = {
-            k: v for k, v in spec.items()
+            k: v
+            for k, v in spec.items()
             if k not in ("$schema", "title", "description", "data", "datasets")
         }
         return json.dumps(stripped, sort_keys=True, indent=2)
@@ -305,7 +350,9 @@ def bench_inspect(
             continue
 
         console.print("[bold]Predicted spec:[/bold]")
-        console.print(Syntax(json.dumps(rec.final_spec, indent=2), "json", theme="monokai"))
+        console.print(
+            Syntax(json.dumps(rec.final_spec, indent=2), "json", theme="monokai")
+        )
 
         console.print("\n[bold]Mismatches:[/bold]")
         if rec.correctness.mismatches:
@@ -338,7 +385,9 @@ def fetch_schema(
     from chart_llm.validation.schema import fetch_schema as _fetch
 
     console = Console()
-    with console.status(f"[bold blue]Downloading Vega-Lite v{version} schema…[/bold blue]"):
+    with console.status(
+        f"[bold blue]Downloading Vega-Lite v{version} schema…[/bold blue]"
+    ):
         path = _fetch(version=version)
     console.print(f"[bold green]✓[/bold green] Schema cached at [bold]{path}[/bold]")
 
@@ -362,7 +411,9 @@ def validate_cmd(
         console.print("[bold green]✓ Spec passed all validation checks.[/bold green]")
         return
 
-    console.print(f"[bold red]✗ Validation failed at stage: {result.stage_failed}[/bold red]\n")
+    console.print(
+        f"[bold red]✗ Validation failed at stage: {result.stage_failed}[/bold red]\n"
+    )
     for err in result.errors:
         console.print(f"  [yellow][{err.code}][/yellow] {err.path}")
         console.print(f"    {err.message}")
@@ -373,7 +424,9 @@ def validate_cmd(
 
 @app.command("test-model")
 def test_model(
-    name: str = typer.Argument(..., help="Model name: gemini-flash | llama-70b-groq | llama-8b-local"),
+    name: str = typer.Argument(
+        ..., help="Model name: gemini-flash | llama-70b-groq | llama-8b-local"
+    ),
 ) -> None:
     """Send a smoke-test prompt and display the model response."""
     from chart_llm.models.registry import get_client

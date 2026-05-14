@@ -16,9 +16,7 @@ from chart_llm.models.ollama import OllamaClient
 # ---------------------------------------------------------------------------
 
 _VALID_GEMINI_BODY = {
-    "candidates": [
-        {"content": {"parts": [{"text": '{"ok": true}'}], "role": "model"}}
-    ],
+    "candidates": [{"content": {"parts": [{"text": '{"ok": true}'}], "role": "model"}}],
     "usageMetadata": {
         "promptTokenCount": 12,
         "candidatesTokenCount": 8,
@@ -49,7 +47,9 @@ def _make_groq(handler) -> GroqClient:
 
 
 def _make_ollama(handler) -> OllamaClient:
-    http = httpx.Client(base_url="http://localhost:11434", transport=httpx.MockTransport(handler))
+    http = httpx.Client(
+        base_url="http://localhost:11434", transport=httpx.MockTransport(handler)
+    )
     return OllamaClient(_client=http)
 
 
@@ -92,7 +92,9 @@ class TestGeminiRequestBody:
 class TestGeminiResponseParsing:
     def test_parses_valid_response(self, monkeypatch):
         monkeypatch.setenv("GEMINI_API_KEY", "test-key")
-        resp = _make_gemini(lambda r: httpx.Response(200, json=_VALID_GEMINI_BODY)).generate("s", "u")
+        resp = _make_gemini(
+            lambda r: httpx.Response(200, json=_VALID_GEMINI_BODY)
+        ).generate("s", "u")
         assert isinstance(resp, LLMResponse)
         assert resp.text == '{"ok": true}'
         assert resp.model_name == "gemini-2.0-flash"
@@ -134,7 +136,9 @@ class TestGemini429Retry:
 
         with patch("chart_llm.models._http.time.sleep", side_effect=sleeps.append):
             with pytest.raises(httpx.HTTPStatusError):
-                _make_gemini(lambda r: httpx.Response(429, json={})).generate("s", "u", max_retries=2)
+                _make_gemini(lambda r: httpx.Response(429, json={})).generate(
+                    "s", "u", max_retries=2
+                )
 
         assert sleeps == [2, 4]
 
@@ -144,7 +148,9 @@ class TestGemini429Retry:
 
         with patch("chart_llm.models._http.time.sleep", side_effect=sleeps.append):
             with pytest.raises(httpx.HTTPStatusError):
-                _make_gemini(lambda r: httpx.Response(429, json={})).generate("s", "u", max_retries=3)
+                _make_gemini(lambda r: httpx.Response(429, json={})).generate(
+                    "s", "u", max_retries=3
+                )
 
         assert sleeps == [2, 4, 8]
 
@@ -214,7 +220,9 @@ class TestGroqRequestBody:
 class TestGroqResponseParsing:
     def test_parses_valid_response(self, monkeypatch):
         monkeypatch.setenv("GROQ_API_KEY", "groq-key")
-        resp = _make_groq(lambda r: httpx.Response(200, json=_VALID_GROQ_BODY)).generate("s", "u")
+        resp = _make_groq(
+            lambda r: httpx.Response(200, json=_VALID_GROQ_BODY)
+        ).generate("s", "u")
         assert isinstance(resp, LLMResponse)
         assert resp.text == '{"ok": true}'
         assert resp.model_name == "llama-3.3-70b-versatile"
@@ -256,7 +264,9 @@ class TestGroq429Retry:
 
         with patch("chart_llm.models._http.time.sleep", side_effect=sleeps.append):
             with pytest.raises(httpx.HTTPStatusError):
-                _make_groq(lambda r: httpx.Response(429, json={})).generate("s", "u", max_retries=2)
+                _make_groq(lambda r: httpx.Response(429, json={})).generate(
+                    "s", "u", max_retries=2
+                )
 
         assert sleeps == [2, 4]
 
@@ -298,7 +308,9 @@ class TestOllamaRequestBody:
 
 class TestOllamaResponseParsing:
     def test_parses_valid_response(self):
-        resp = _make_ollama(lambda r: httpx.Response(200, json=_VALID_OLLAMA_BODY)).generate("s", "u")
+        resp = _make_ollama(
+            lambda r: httpx.Response(200, json=_VALID_OLLAMA_BODY)
+        ).generate("s", "u")
         assert isinstance(resp, LLMResponse)
         assert resp.text == '{"ok": true}'
         assert resp.model_name == "llama3.1:8b"

@@ -1,11 +1,15 @@
 """Tests for chart_llm.rendering."""
 
-import json
 
 import pandas as pd
 import pytest
 
-from chart_llm.rendering import RenderError, render_to_html, render_to_png, render_to_svg
+from chart_llm.rendering import (
+    RenderError,
+    render_to_html,
+    render_to_png,
+    render_to_svg,
+)
 
 _SCHEMA_URL = "https://vega.github.io/schema/vega-lite/v5.json"
 
@@ -74,6 +78,7 @@ def test_render_to_html_custom_data_name(df):
 
 def test_render_to_html_does_not_mutate_spec(df):
     import copy
+
     original = copy.deepcopy(_VALID_SPEC)
     render_to_html(_VALID_SPEC, df)
     assert _VALID_SPEC == original
@@ -87,27 +92,38 @@ def test_render_to_html_does_not_mutate_spec(df):
 def _vl_convert_available() -> bool:
     try:
         import vl_convert  # noqa: F401
+
         return True
     except ImportError:
         return False
 
 
-@pytest.mark.skipif(not _vl_convert_available(), reason="vl-convert-python not installed")
+@pytest.mark.skipif(
+    not _vl_convert_available(), reason="vl-convert-python not installed"
+)
 def test_render_to_png_returns_bytes(df):
     data = render_to_png(_VALID_SPEC, df)
     assert isinstance(data, bytes)
     assert len(data) > 0
 
 
-@pytest.mark.skipif(not _vl_convert_available(), reason="vl-convert-python not installed")
+@pytest.mark.skipif(
+    not _vl_convert_available(), reason="vl-convert-python not installed"
+)
 def test_render_to_png_starts_with_png_magic(df):
     data = render_to_png(_VALID_SPEC, df)
     assert data[:4] == b"\x89PNG"
 
 
-@pytest.mark.skipif(not _vl_convert_available(), reason="vl-convert-python not installed")
+@pytest.mark.skipif(
+    not _vl_convert_available(), reason="vl-convert-python not installed"
+)
 def test_render_to_png_raises_render_error_on_bad_spec(df):
-    bad_spec = {"$schema": _SCHEMA_URL, "data": {"name": "table"}, "mark": "not_a_real_mark"}
+    bad_spec = {
+        "$schema": _SCHEMA_URL,
+        "data": {"name": "table"},
+        "mark": "not_a_real_mark",
+    }
     with pytest.raises(RenderError):
         render_to_png(bad_spec, df)
 
@@ -117,13 +133,17 @@ def test_render_to_png_raises_render_error_on_bad_spec(df):
 # ---------------------------------------------------------------------------
 
 
-@pytest.mark.skipif(not _vl_convert_available(), reason="vl-convert-python not installed")
+@pytest.mark.skipif(
+    not _vl_convert_available(), reason="vl-convert-python not installed"
+)
 def test_render_to_svg_returns_string(df):
     svg = render_to_svg(_VALID_SPEC, df)
     assert isinstance(svg, str)
 
 
-@pytest.mark.skipif(not _vl_convert_available(), reason="vl-convert-python not installed")
+@pytest.mark.skipif(
+    not _vl_convert_available(), reason="vl-convert-python not installed"
+)
 def test_render_to_svg_is_valid_svg(df):
     svg = render_to_svg(_VALID_SPEC, df)
     assert svg.strip().startswith("<svg") or "<?xml" in svg

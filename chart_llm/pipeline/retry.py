@@ -1,6 +1,5 @@
 """Retry-with-validation loop: generate → validate → feedback → repeat."""
 
-import json
 from typing import Literal, Optional
 
 from pydantic import BaseModel
@@ -77,7 +76,9 @@ def generate_validated_spec(
         if attempt_num == 1:
             system, user = build_generation_prompt(dataset_ctx, question)
         else:
-            system, user = build_retry_prompt(question, previous_spec_text, previous_validation)
+            system, user = build_retry_prompt(
+                question, previous_spec_text, previous_validation
+            )
 
         try:
             response = client.generate(system=system, user=user)
@@ -96,7 +97,9 @@ def generate_validated_spec(
 
         try:
             spec = LLMModel.extract_json(response.text)
-            val_result = run_validation(spec, dataset_ctx, include_render=include_render)
+            val_result = run_validation(
+                spec, dataset_ctx, include_render=include_render
+            )
         except ValueError:
             spec = None
             val_result = _invalid_json_result()

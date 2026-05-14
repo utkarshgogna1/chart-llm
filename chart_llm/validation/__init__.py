@@ -7,7 +7,11 @@ from chart_llm.validation.schema import validate_schema
 from chart_llm.validation.semantics import validate_semantics
 from chart_llm.validation.render import validate_render
 from chart_llm.validation.structural import validate_structural
-from chart_llm.validation.types import ValidationError, ValidationResult, ValidationStage
+from chart_llm.validation.types import (
+    ValidationError,
+    ValidationResult,
+    ValidationStage,
+)
 
 __all__ = [
     "ValidationError",

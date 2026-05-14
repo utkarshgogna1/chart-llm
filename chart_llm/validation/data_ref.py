@@ -23,7 +23,9 @@ def validate_data_ref(spec: dict, expected_name: str = "table") -> ValidationRes
 
     data = spec.get("data")
     if data is None:
-        return _fail("missing_data", 'Spec is missing the required "data" field', "/data")
+        return _fail(
+            "missing_data", 'Spec is missing the required "data" field', "/data"
+        )
 
     if "values" in data:
         return _fail(

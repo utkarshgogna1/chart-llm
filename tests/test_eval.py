@@ -47,8 +47,20 @@ def simple_ctx() -> DatasetContext:
         name="test",
         df=df,
         column_schema=[
-            ColumnInfo(name="region", dtype="object", sample_values=["North"], n_unique=2, n_null=0),
-            ColumnInfo(name="revenue", dtype="float64", sample_values=["1000.0"], n_unique=2, n_null=0),
+            ColumnInfo(
+                name="region",
+                dtype="object",
+                sample_values=["North"],
+                n_unique=2,
+                n_null=0,
+            ),
+            ColumnInfo(
+                name="revenue",
+                dtype="float64",
+                sample_values=["1000.0"],
+                n_unique=2,
+                n_null=0,
+            ),
         ],
         row_count=2,
     )
@@ -78,17 +90,32 @@ def test_load_benchmark_reads_23_queries():
 
 def test_load_benchmark_contains_original_5_ids():
     ids = {q.id for q in load_benchmark(_QUERIES_DIR)}
-    assert {"sales_001", "sales_002", "sales_003", "sales_004", "sales_005"}.issubset(ids)
+    assert {"sales_001", "sales_002", "sales_003", "sales_004", "sales_005"}.issubset(
+        ids
+    )
 
 
 def test_load_benchmark_new_query_ids():
     ids = {q.id for q in load_benchmark(_QUERIES_DIR)}
     new_ids = {
-        "movies_001", "movies_002", "movies_003", "movies_004", "movies_005",
-        "movies_006", "movies_007", "movies_008",
-        "weather_001", "weather_002", "weather_003", "weather_004",
-        "weather_005", "weather_006", "weather_007", "weather_008",
-        "sales_006", "sales_007",
+        "movies_001",
+        "movies_002",
+        "movies_003",
+        "movies_004",
+        "movies_005",
+        "movies_006",
+        "movies_007",
+        "movies_008",
+        "weather_001",
+        "weather_002",
+        "weather_003",
+        "weather_004",
+        "weather_005",
+        "weather_006",
+        "weather_007",
+        "weather_008",
+        "sales_006",
+        "sales_007",
     }
     assert new_ids.issubset(ids)
 
@@ -106,7 +133,9 @@ def test_benchmark_query_ground_truth_has_data_name():
     for q in load_benchmark(_QUERIES_DIR):
         if q.expects_no_correct_answer or q.ground_truth_spec is None:
             continue
-        assert q.ground_truth_spec["data"] == {"name": "table"}, f"{q.id} missing data.name=table"
+        assert q.ground_truth_spec["data"] == {"name": "table"}, (
+            f"{q.id} missing data.name=table"
+        )
 
 
 def test_benchmark_query_movies_007_no_answer():
@@ -286,7 +315,7 @@ def test_run_benchmark_produces_46_records(tmp_path):
             max_attempts=1,
             resume=False,
         )
-    lines = [l for l in output.read_text().splitlines() if l.strip()]
+    lines = [line for line in output.read_text().splitlines() if line.strip()]
     assert len(lines) == 46
 
 
@@ -321,17 +350,34 @@ def test_run_benchmark_records_cover_all_queries(tmp_path):
             resume=False,
         )
     ids = {
-        BenchmarkRecord.model_validate_json(l).query_id
-        for l in output.read_text().splitlines()
-        if l.strip()
+        BenchmarkRecord.model_validate_json(line).query_id
+        for line in output.read_text().splitlines()
+        if line.strip()
     }
     assert ids == {
-        "sales_001", "sales_002", "sales_003", "sales_004", "sales_005",
-        "sales_006", "sales_007",
-        "movies_001", "movies_002", "movies_003", "movies_004", "movies_005",
-        "movies_006", "movies_007", "movies_008",
-        "weather_001", "weather_002", "weather_003", "weather_004", "weather_005",
-        "weather_006", "weather_007", "weather_008",
+        "sales_001",
+        "sales_002",
+        "sales_003",
+        "sales_004",
+        "sales_005",
+        "sales_006",
+        "sales_007",
+        "movies_001",
+        "movies_002",
+        "movies_003",
+        "movies_004",
+        "movies_005",
+        "movies_006",
+        "movies_007",
+        "movies_008",
+        "weather_001",
+        "weather_002",
+        "weather_003",
+        "weather_004",
+        "weather_005",
+        "weather_006",
+        "weather_007",
+        "weather_008",
     }
 
 
@@ -356,9 +402,9 @@ def test_run_benchmark_resume_skips_existing(tmp_path):
             )
 
     _run()
-    count_after_first = len([l for l in output.read_text().splitlines() if l.strip()])
+    count_after_first = len([line for line in output.read_text().splitlines() if line.strip()])
     _run()
-    count_after_second = len([l for l in output.read_text().splitlines() if l.strip()])
+    count_after_second = len([line for line in output.read_text().splitlines() if line.strip()])
 
     assert count_after_first == 23
     assert count_after_second == 23  # no duplicates added
@@ -380,8 +426,10 @@ def test_run_benchmark_no_resume_overwrites(tmp_path):
             )
 
     _run(resume=True)
-    _run(resume=False)  # resume=False → does not skip existing keys → appends duplicates
-    count = len([l for l in output.read_text().splitlines() if l.strip()])
+    _run(
+        resume=False
+    )  # resume=False → does not skip existing keys → appends duplicates
+    count = len([line for line in output.read_text().splitlines() if line.strip()])
     assert count == 46  # 23 + 23
 
 
@@ -477,7 +525,9 @@ def test_filter_object_form_equivalent_to_string():
         "transform": [{"filter": {"field": "region", "equal": "West"}}],
     }
     score = spec_correctness(predicted, _FILTER_GT)
-    assert score.match is True, f"Expected match=True, got mismatches: {score.mismatches}"
+    assert score.match is True, (
+        f"Expected match=True, got mismatches: {score.mismatches}"
+    )
 
 
 def test_filter_double_equals_equivalent_to_triple():
@@ -487,7 +537,9 @@ def test_filter_double_equals_equivalent_to_triple():
         "transform": [{"filter": "datum.region == 'West'"}],
     }
     score = spec_correctness(predicted, _FILTER_GT)
-    assert score.match is True, f"Expected match=True, got mismatches: {score.mismatches}"
+    assert score.match is True, (
+        f"Expected match=True, got mismatches: {score.mismatches}"
+    )
 
 
 def test_filter_object_gt_matches_string_predicted():
@@ -527,7 +579,9 @@ def test_extra_unsolicited_color_channel_does_not_penalize():
         },
     }
     score = spec_correctness(predicted, _FILTER_GT)
-    assert score.match is True, f"Extra color channel should not cause mismatch: {score.mismatches}"
+    assert score.match is True, (
+        f"Extra color channel should not cause mismatch: {score.mismatches}"
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -588,10 +642,10 @@ def test_summary_table_succeeded_counts_final_validated(tmp_path):
     assert summary_model_row is not None, "Summary table row not found"
     cells = [c.strip() for c in summary_model_row.split("|") if c.strip()]
     # cells: [model, mode, queries, succeeded, errored, no_spec]
-    assert cells[2] == "3"   # Queries
-    assert cells[3] == "1"   # Succeeded (only final_validated=True)
-    assert cells[4] == "1"   # Errored (error_message is not None)
-    assert cells[5] == "1"   # No Spec (final_validated=False AND error_message is None)
+    assert cells[2] == "3"  # Queries
+    assert cells[3] == "1"  # Succeeded (only final_validated=True)
+    assert cells[4] == "1"  # Errored (error_message is not None)
+    assert cells[5] == "1"  # No Spec (final_validated=False AND error_message is None)
 
 
 # ---------------------------------------------------------------------------
@@ -650,12 +704,14 @@ def _make_no_answer_record(
 
 def test_no_answer_honest_when_model_produces_no_spec():
     from chart_llm.eval.report import _failure_category
+
     rec = _make_no_answer_record(final_spec=None, hallucinated=[])
     assert _failure_category(rec) == "no-answer-honest"
 
 
 def test_no_answer_hallucinated_when_model_produces_spec():
     from chart_llm.eval.report import _failure_category
+
     rec = _make_no_answer_record(final_spec=_VALID_SPEC, hallucinated=["director"])
     assert _failure_category(rec) == "no-answer-hallucinated"
 
@@ -691,7 +747,9 @@ def test_count_fieldless_gt_vs_fielded_prediction_matches():
         },
     }
     score = spec_correctness(predicted, _COUNT_GT_FIELDLESS)
-    assert score.match is True, f"Fieldless GT should match fielded prediction: {score.mismatches}"
+    assert score.match is True, (
+        f"Fieldless GT should match fielded prediction: {score.mismatches}"
+    )
 
 
 def test_count_fielded_gt_vs_fieldless_prediction_matches():
@@ -711,7 +769,9 @@ def test_count_fielded_gt_vs_fieldless_prediction_matches():
         },
     }
     score = spec_correctness(predicted, gt_fielded)
-    assert score.match is True, f"Fielded GT should match fieldless prediction: {score.mismatches}"
+    assert score.match is True, (
+        f"Fielded GT should match fieldless prediction: {score.mismatches}"
+    )
 
 
 def test_count_different_field_still_matches():
@@ -731,7 +791,9 @@ def test_count_different_field_still_matches():
         },
     }
     score = spec_correctness(predicted, gt_fielded)
-    assert score.match is True, f"Count on different field should match: {score.mismatches}"
+    assert score.match is True, (
+        f"Count on different field should match: {score.mismatches}"
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -754,7 +816,9 @@ _FACET_GT = {
 
 def test_faceted_gt_identical_prediction_matches():
     score = spec_correctness(_FACET_GT, _FACET_GT)
-    assert score.match is True, f"Identical faceted specs should match: {score.mismatches}"
+    assert score.match is True, (
+        f"Identical faceted specs should match: {score.mismatches}"
+    )
 
 
 def test_faceted_gt_non_faceted_prediction_does_not_match():
@@ -770,7 +834,9 @@ def test_faceted_gt_non_faceted_prediction_does_not_match():
     }
     score = spec_correctness(predicted_flat, _FACET_GT)
     assert score.match is False, "Non-faceted prediction must not match faceted GT"
-    assert any("facet" in m for m in score.mismatches), f"Expected facet mismatch in: {score.mismatches}"
+    assert any("facet" in m for m in score.mismatches), (
+        f"Expected facet mismatch in: {score.mismatches}"
+    )
 
 
 def test_faceted_gt_wrong_facet_field_does_not_match():
@@ -780,7 +846,9 @@ def test_faceted_gt_wrong_facet_field_does_not_match():
     }
     score = spec_correctness(predicted, _FACET_GT)
     assert score.match is False, "Wrong facet field should not match"
-    assert any("facet" in m for m in score.mismatches), f"Expected facet mismatch in: {score.mismatches}"
+    assert any("facet" in m for m in score.mismatches), (
+        f"Expected facet mismatch in: {score.mismatches}"
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -807,7 +875,10 @@ def test_calculate_different_expression_same_as_matches():
     pred_a = {
         **_CALC_BASE,
         "transform": [
-            {"calculate": "datum.imdb_rating >= 7 ? 'High' : 'Low'", "as": "rating_tier"}
+            {
+                "calculate": "datum.imdb_rating >= 7 ? 'High' : 'Low'",
+                "as": "rating_tier",
+            }
         ],
     }
     score = spec_correctness(pred_a, _CALC_BASE)
@@ -831,7 +902,10 @@ def test_calculate_different_as_field_does_not_match():
     pred_wrong = {
         **_CALC_BASE,
         "transform": [
-            {"calculate": "datum.imdb_rating > 7.0 ? 'High' : 'Low'", "as": "quality_band"}
+            {
+                "calculate": "datum.imdb_rating > 7.0 ? 'High' : 'Low'",
+                "as": "quality_band",
+            }
         ],
     }
     score = spec_correctness(pred_wrong, _CALC_BASE)
@@ -849,7 +923,9 @@ def test_hallucinated_columns_skips_calculate_derived_field(simple_ctx):
         "$schema": _SCHEMA_URL,
         "data": {"name": "table"},
         "mark": "point",
-        "transform": [{"calculate": "datum.revenue > 1500 ? 'High' : 'Low'", "as": "tier"}],
+        "transform": [
+            {"calculate": "datum.revenue > 1500 ? 'High' : 'Low'", "as": "tier"}
+        ],
         "encoding": {
             "x": {"field": "region", "type": "nominal"},
             "color": {"field": "tier", "type": "nominal"},
@@ -865,14 +941,18 @@ def test_hallucinated_columns_flags_field_not_covered_by_calculate(simple_ctx):
         "$schema": _SCHEMA_URL,
         "data": {"name": "table"},
         "mark": "point",
-        "transform": [{"calculate": "datum.revenue > 1500 ? 'High' : 'Low'", "as": "other_field"}],
+        "transform": [
+            {"calculate": "datum.revenue > 1500 ? 'High' : 'Low'", "as": "other_field"}
+        ],
         "encoding": {
             "x": {"field": "region", "type": "nominal"},
             "color": {"field": "tier", "type": "nominal"},
         },
     }
     result = hallucinated_columns(spec, simple_ctx)
-    assert "tier" in result, f"tier is not derived by any transform, should be flagged: {result}"
+    assert "tier" in result, (
+        f"tier is not derived by any transform, should be flagged: {result}"
+    )
 
 
 def test_hallucinated_columns_skips_joinaggregate_derived_field(simple_ctx):
@@ -882,7 +962,11 @@ def test_hallucinated_columns_skips_joinaggregate_derived_field(simple_ctx):
         "data": {"name": "table"},
         "mark": "bar",
         "transform": [
-            {"joinaggregate": [{"op": "sum", "field": "revenue", "as": "total_revenue"}]}
+            {
+                "joinaggregate": [
+                    {"op": "sum", "field": "revenue", "as": "total_revenue"}
+                ]
+            }
         ],
         "encoding": {
             "x": {"field": "region", "type": "nominal"},
@@ -890,4 +974,6 @@ def test_hallucinated_columns_skips_joinaggregate_derived_field(simple_ctx):
         },
     }
     result = hallucinated_columns(spec, simple_ctx)
-    assert result == [], f"total_revenue is joinaggregate-derived, not a hallucination: {result}"
+    assert result == [], (
+        f"total_revenue is joinaggregate-derived, not a hallucination: {result}"
+    )

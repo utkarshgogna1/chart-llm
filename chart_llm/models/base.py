@@ -22,8 +22,7 @@ class LLMModel(ABC):
     """Common interface for all LLM backends used in chart-llm."""
 
     @abstractmethod
-    def generate(self, system: str, user: str, max_retries: int = 2) -> LLMResponse:
-        ...
+    def generate(self, system: str, user: str, max_retries: int = 2) -> LLMResponse: ...
 
     @classmethod
     def extract_json(cls, text: str) -> dict:
@@ -34,4 +33,6 @@ class LLMModel(ABC):
         try:
             return json.loads(stripped)
         except json.JSONDecodeError as e:
-            raise ValueError(f"Failed to parse JSON from model output: {e}\nRaw text: {text!r}") from e
+            raise ValueError(
+                f"Failed to parse JSON from model output: {e}\nRaw text: {text!r}"
+            ) from e

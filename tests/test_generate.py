@@ -4,10 +4,9 @@ import json
 from pathlib import Path
 
 import pandas as pd
-import pytest
 
 from chart_llm.models.base import LLMModel, LLMResponse
-from chart_llm.pipeline.dataset import DatasetContext, build_dataset_context
+from chart_llm.pipeline.dataset import build_dataset_context
 from chart_llm.pipeline.generate import GenerationResult, generate_spec
 
 SALES_CSV = Path(__file__).parent.parent / "benchmarks" / "datasets" / "sales.csv"
@@ -59,7 +58,11 @@ class TestDatasetContext:
     def test_column_names_match_csv(self):
         ctx = build_dataset_context(SALES_CSV)
         assert [c.name for c in ctx.column_schema] == [
-            "date", "region", "product", "units", "revenue"
+            "date",
+            "region",
+            "product",
+            "units",
+            "revenue",
         ]
 
     def test_row_count_and_name(self):
@@ -73,7 +76,9 @@ class TestDatasetContext:
         assert region.n_unique == 4
         assert region.n_null == 0
         assert len(region.sample_values) <= 3
-        assert all(v in ("North", "South", "East", "West") for v in region.sample_values)
+        assert all(
+            v in ("North", "South", "East", "West") for v in region.sample_values
+        )
 
     def test_sample_values_are_strings(self):
         ctx = build_dataset_context(SALES_CSV)

@@ -1,6 +1,6 @@
 """Comprehensive tests for all four validators and the pipeline orchestrator."""
 
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pandas as pd
 import pytest
@@ -204,7 +204,9 @@ class TestSemanticValidation:
 
     def test_numeric_aggregate_sum_passes(self, ctx):
         spec = {
-            "encoding": {"y": {"field": "revenue", "aggregate": "sum", "type": "quantitative"}}
+            "encoding": {
+                "y": {"field": "revenue", "aggregate": "sum", "type": "quantitative"}
+            }
         }
         result = validate_semantics(spec, ctx)
         assert result.ok
@@ -282,7 +284,9 @@ class TestDataRefValidation:
         assert result.errors[0].code == "url_data"
 
     def test_custom_expected_name(self):
-        result = validate_data_ref({"data": {"name": "my_table"}}, expected_name="my_table")
+        result = validate_data_ref(
+            {"data": {"name": "my_table"}}, expected_name="my_table"
+        )
         assert result.ok
 
     def test_error_path_points_at_data(self):
@@ -308,7 +312,10 @@ class TestValidationPipeline:
             stage_failed="schema",
         )
         with (
-            patch("chart_llm.validation.pipeline.validate_schema", return_value=failed_schema),
+            patch(
+                "chart_llm.validation.pipeline.validate_schema",
+                return_value=failed_schema,
+            ),
             patch("chart_llm.validation.pipeline.validate_columns") as mock_cols,
             patch("chart_llm.validation.pipeline.validate_semantics") as mock_sem,
         ):
@@ -324,7 +331,10 @@ class TestValidationPipeline:
         failed_data_ref = ValidationResult(ok=False, errors=[], stage_failed="data_ref")
         with (
             patch("chart_llm.validation.pipeline.validate_schema", return_value=ok),
-            patch("chart_llm.validation.pipeline.validate_data_ref", return_value=failed_data_ref),
+            patch(
+                "chart_llm.validation.pipeline.validate_data_ref",
+                return_value=failed_data_ref,
+            ),
             patch("chart_llm.validation.pipeline.validate_columns") as mock_cols,
         ):
             result = run_validation({"data": {"name": "sales"}}, ctx)
@@ -371,15 +381,20 @@ class TestStructuralValidation:
 
     def test_valid_spec_passes(self):
         from chart_llm.validation.structural import validate_structural
+
         result = validate_structural(self._BASE)
         assert result.ok is True
         assert result.errors == []
 
     def test_facet_in_encoding_fails(self):
         from chart_llm.validation.structural import validate_structural
+
         spec = {
             **self._BASE,
-            "encoding": {**self._BASE["encoding"], "facet": {"field": "region", "type": "nominal"}},
+            "encoding": {
+                **self._BASE["encoding"],
+                "facet": {"field": "region", "type": "nominal"},
+            },
         }
         result = validate_structural(spec)
         assert result.ok is False
@@ -389,9 +404,13 @@ class TestStructuralValidation:
 
     def test_row_in_encoding_fails(self):
         from chart_llm.validation.structural import validate_structural
+
         spec = {
             **self._BASE,
-            "encoding": {**self._BASE["encoding"], "row": {"field": "product", "type": "nominal"}},
+            "encoding": {
+                **self._BASE["encoding"],
+                "row": {"field": "product", "type": "nominal"},
+            },
         }
         result = validate_structural(spec)
         assert result.ok is False
@@ -399,9 +418,13 @@ class TestStructuralValidation:
 
     def test_column_in_encoding_fails(self):
         from chart_llm.validation.structural import validate_structural
+
         spec = {
             **self._BASE,
-            "encoding": {**self._BASE["encoding"], "column": {"field": "product", "type": "nominal"}},
+            "encoding": {
+                **self._BASE["encoding"],
+                "column": {"field": "product", "type": "nominal"},
+            },
         }
         result = validate_structural(spec)
         assert result.ok is False
@@ -409,6 +432,7 @@ class TestStructuralValidation:
 
     def test_filter_at_top_level_fails(self):
         from chart_llm.validation.structural import validate_structural
+
         spec = {**self._BASE, "filter": "datum.region === 'West'"}
         result = validate_structural(spec)
         assert result.ok is False
@@ -416,6 +440,7 @@ class TestStructuralValidation:
 
     def test_filter_in_encoding_fails(self):
         from chart_llm.validation.structural import validate_structural
+
         spec = {
             **self._BASE,
             "encoding": {
@@ -429,13 +454,18 @@ class TestStructuralValidation:
 
     def test_aggregate_at_top_level_fails(self):
         from chart_llm.validation.structural import validate_structural
-        spec = {**self._BASE, "aggregate": [{"op": "sum", "field": "revenue", "as": "total"}]}
+
+        spec = {
+            **self._BASE,
+            "aggregate": [{"op": "sum", "field": "revenue", "as": "total"}],
+        }
         result = validate_structural(spec)
         assert result.ok is False
         assert any(e.code == "aggregate_at_top_level" for e in result.errors)
 
     def test_calculate_at_top_level_fails(self):
         from chart_llm.validation.structural import validate_structural
+
         spec = {**self._BASE, "calculate": "datum.revenue * 2"}
         result = validate_structural(spec)
         assert result.ok is False
@@ -443,6 +473,7 @@ class TestStructuralValidation:
 
     def test_transform_not_a_list_fails(self):
         from chart_llm.validation.structural import validate_structural
+
         spec = {**self._BASE, "transform": {"filter": "datum.region === 'West'"}}
         result = validate_structural(spec)
         assert result.ok is False
@@ -450,27 +481,35 @@ class TestStructuralValidation:
 
     def test_transform_as_list_passes(self):
         from chart_llm.validation.structural import validate_structural
+
         spec = {**self._BASE, "transform": [{"filter": "datum.region === 'West'"}]}
         result = validate_structural(spec)
         assert result.ok is True
 
     def test_structural_errors_have_suggestions(self):
         from chart_llm.validation.structural import validate_structural
+
         spec = {
             **self._BASE,
-            "encoding": {**self._BASE["encoding"], "facet": {"field": "region", "type": "nominal"}},
+            "encoding": {
+                **self._BASE["encoding"],
+                "facet": {"field": "region", "type": "nominal"},
+            },
         }
         result = validate_structural(spec)
         assert all(e.suggestion is not None for e in result.errors)
 
     def test_structural_runs_before_data_ref_in_pipeline(self, ctx, vega_lite_schema):
         """Structural check must short-circuit before data_ref so we get structural errors."""
-        from chart_llm.pipeline.dataset import DatasetContext
         from chart_llm.validation.pipeline import run_validation
+
         spec = {
             **self._BASE,
             "data": {"name": "wrong"},
-            "encoding": {**self._BASE["encoding"], "facet": {"field": "region", "type": "nominal"}},
+            "encoding": {
+                **self._BASE["encoding"],
+                "facet": {"field": "region", "type": "nominal"},
+            },
         }
         result = run_validation(spec, ctx, expected_data_name="table")
         assert result.stage_failed == "structural"
@@ -494,6 +533,7 @@ class TestRenderValidation:
     def test_valid_spec_renders_ok(self, ctx, vega_lite_schema):
         """A valid spec + real df should produce ok=True."""
         from chart_llm.validation.render import validate_render
+
         result = validate_render(self._BASE, ctx)
         assert result.ok is True
         assert result.errors == []
@@ -505,7 +545,10 @@ class TestRenderValidation:
         from chart_llm.rendering.render import RenderError
         from chart_llm.validation.render import validate_render
 
-        with patch("chart_llm.validation.render.render_to_html", side_effect=RenderError("vl-convert exploded")):
+        with patch(
+            "chart_llm.validation.render.render_to_html",
+            side_effect=RenderError("vl-convert exploded"),
+        ):
             result = validate_render(self._BASE, ctx)
 
         assert result.ok is False
@@ -550,7 +593,9 @@ class TestRenderValidation:
 
         from chart_llm.validation.pipeline import run_validation
 
-        with patch("chart_llm.validation.render.render_to_html", return_value="<html/>") as mock_render:
+        with patch(
+            "chart_llm.validation.render.render_to_html", return_value="<html/>"
+        ) as mock_render:
             result = run_validation(self._BASE, ctx, include_render=True)
 
         mock_render.assert_called_once()
@@ -562,7 +607,10 @@ class TestRenderValidation:
 
         from chart_llm.validation.render import validate_render
 
-        with patch("chart_llm.validation.render.render_to_html", side_effect=ValueError("unexpected")):
+        with patch(
+            "chart_llm.validation.render.render_to_html",
+            side_effect=ValueError("unexpected"),
+        ):
             result = validate_render(self._BASE, ctx)
 
         assert result.ok is False

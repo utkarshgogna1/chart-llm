@@ -11,7 +11,9 @@ _DEFAULT_BASE_URL = "http://localhost:11434"
 
 
 class OllamaClient(LLMModel):
-    def __init__(self, model: str = "llama3.1:8b", *, _client: httpx.Client | None = None) -> None:
+    def __init__(
+        self, model: str = "llama3.1:8b", *, _client: httpx.Client | None = None
+    ) -> None:
         self._model = model
         base_url = os.environ.get("OLLAMA_BASE_URL", _DEFAULT_BASE_URL)
         self._client = _client or httpx.Client(base_url=base_url, timeout=120)

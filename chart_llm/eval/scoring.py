@@ -8,7 +8,6 @@ import pandas as pd
 from pydantic import BaseModel
 
 
-
 class CorrectnessScore(BaseModel):
     match: Optional[bool]  # None for expects_no_correct_answer queries
     mismatches: list[str]
@@ -95,9 +94,7 @@ def _compare_encoding(predicted_enc: dict, gt_enc: dict) -> list[str]:
 #   1. String expression:  "datum.region === 'West'"  or  "datum.region == 'West'"
 #   2. Object form:        {"field": "region", "equal": "West"}
 # Normalize all to the object form so they compare equal.
-_FILTER_RE = re.compile(
-    r"datum\.(\w+)\s*===?\s*(?:'([^']*)'|\"([^\"]*)\")"
-)
+_FILTER_RE = re.compile(r"datum\.(\w+)\s*===?\s*(?:'([^']*)'|\"([^\"]*)\")")
 
 
 def _normalize_filter(f: object) -> object:
@@ -120,7 +117,9 @@ def _normalize_transform_step(step: dict) -> dict:
 
 
 def _transform_set(transforms: list) -> set[str]:
-    return {json.dumps(_normalize_transform_step(t), sort_keys=True) for t in transforms}
+    return {
+        json.dumps(_normalize_transform_step(t), sort_keys=True) for t in transforms
+    }
 
 
 # ---------------------------------------------------------------------------
@@ -143,7 +142,9 @@ def spec_correctness(predicted: dict, ground_truth: dict) -> CorrectnessScore:
     pred_mark = _extract_mark(predicted)
     gt_mark = _extract_mark(ground_truth)
     if pred_mark != gt_mark:
-        mismatches.append(f"mark mismatch: predicted={pred_mark!r}, expected={gt_mark!r}")
+        mismatches.append(
+            f"mark mismatch: predicted={pred_mark!r}, expected={gt_mark!r}"
+        )
 
     mismatches.extend(
         _compare_encoding(
@@ -198,7 +199,9 @@ def hallucinated_columns(predicted: dict, dataset_ctx) -> list[str]:
 
     refs: list[str] = []
     _collect_field_refs(predicted, refs)
-    known = {col.name for col in dataset_ctx.column_schema} | _collect_derived_fields(predicted)
+    known = {col.name for col in dataset_ctx.column_schema} | _collect_derived_fields(
+        predicted
+    )
     return sorted({ref for ref in refs if ref not in known})
 
 

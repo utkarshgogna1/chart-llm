@@ -47,7 +47,9 @@ def _collect_derived_fields(spec: dict) -> set[str]:
 
 
 def validate_columns(spec: dict, dataset_ctx: DatasetContext) -> ValidationResult:
-    known = {col.name for col in dataset_ctx.column_schema} | _collect_derived_fields(spec)
+    known = {col.name for col in dataset_ctx.column_schema} | _collect_derived_fields(
+        spec
+    )
     known_list = sorted(known)
     errors: list[ValidationError] = []
 

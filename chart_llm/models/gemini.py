@@ -28,7 +28,9 @@ class GeminiClient(LLMModel):
         self._model = model
         self._api_key = os.environ["GEMINI_API_KEY"]
         self._client = _client or httpx.Client(timeout=60)
-        self._retry_delays = retry_delays if retry_delays is not None else _DEFAULT_RETRY_DELAYS
+        self._retry_delays = (
+            retry_delays if retry_delays is not None else _DEFAULT_RETRY_DELAYS
+        )
 
     def generate(self, system: str, user: str, max_retries: int = 2) -> LLMResponse:
         url = f"{_BASE_URL}/{self._model}:generateContent"

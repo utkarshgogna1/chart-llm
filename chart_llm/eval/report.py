@@ -7,7 +7,6 @@ from pathlib import Path
 from typing import Optional
 
 from chart_llm.eval.runner import BenchmarkRecord
-from chart_llm.eval.scoring import CorrectnessScore, RenderCheck
 
 
 # ---------------------------------------------------------------------------
@@ -87,7 +86,9 @@ def _delta_str(base: Optional[float], val: Optional[float]) -> str:
 def _failure_category(rec: BenchmarkRecord) -> str:
     if rec.correctness.match is None:
         # no-answer query: correct iff the model produced no spec
-        return "no-answer-honest" if rec.final_spec is None else "no-answer-hallucinated"
+        return (
+            "no-answer-honest" if rec.final_spec is None else "no-answer-hallucinated"
+        )
     if rec.error_message:
         return "generation_error"
     if rec.final_spec is None:
@@ -148,7 +149,9 @@ def build_report(jsonl_path: Path, out_md_path: Path) -> None:
                 continue
             succeeded = sum(1 for r in subset if r.final_validated)
             errored = sum(1 for r in subset if r.error_message is not None)
-            no_spec = sum(1 for r in subset if not r.final_validated and r.error_message is None)
+            no_spec = sum(
+                1 for r in subset if not r.final_validated and r.error_message is None
+            )
             lines.append(row(model, mode, len(subset), succeeded, errored, no_spec))
     lines.append("")
 
@@ -156,7 +159,16 @@ def build_report(jsonl_path: Path, out_md_path: Path) -> None:
 
     h(2, "Results")
     lines.append(
-        row("Model", "Mode", "Validated", "Correctness", "No Hallucinations", "Renders", "Median Latency", "Avg Attempts")
+        row(
+            "Model",
+            "Mode",
+            "Validated",
+            "Correctness",
+            "No Hallucinations",
+            "Renders",
+            "Median Latency",
+            "Avg Attempts",
+        )
     )
     lines.append(sep(20, 12, 10, 12, 18, 8, 15, 13))
     for model in all_models:
@@ -169,7 +181,13 @@ def build_report(jsonl_path: Path, out_md_path: Path) -> None:
                     model,
                     mode,
                     _pct([r.final_validated for r in subset]),
-                    _pct([r.correctness.match for r in subset if r.correctness.match is not None]),
+                    _pct(
+                        [
+                            r.correctness.match
+                            for r in subset
+                            if r.correctness.match is not None
+                        ]
+                    ),
                     _pct([r.hallucinated_columns == [] for r in subset]),
                     _pct([r.render_check.ok for r in subset]),
                     _median_ms([r.latency_ms for r in subset]),
@@ -181,7 +199,9 @@ def build_report(jsonl_path: Path, out_md_path: Path) -> None:
     # ── Validation Impact ─────────────────────────────────────────────────────
 
     h(2, "Validation Impact")
-    lines.append(row("Model", "Validated Δ", "Correctness Δ", "No Hallucinations Δ", "Renders Δ"))
+    lines.append(
+        row("Model", "Validated Δ", "Correctness Δ", "No Hallucinations Δ", "Renders Δ")
+    )
     lines.append(sep(20, 12, 14, 20, 10))
 
     def _rate(recs: list[BenchmarkRecord], attr: str) -> Optional[float]:
@@ -190,7 +210,9 @@ def build_report(jsonl_path: Path, out_md_path: Path) -> None:
         if attr == "validated":
             vals = [r.final_validated for r in recs]
         elif attr == "correctness":
-            vals = [r.correctness.match for r in recs if r.correctness.match is not None]
+            vals = [
+                r.correctness.match for r in recs if r.correctness.match is not None
+            ]
         elif attr == "no_hall":
             vals = [r.hallucinated_columns == [] for r in recs]
         elif attr == "renders":
@@ -239,7 +261,17 @@ def build_report(jsonl_path: Path, out_md_path: Path) -> None:
         # Get question from first record — not stored; just use the query_id as label
         lines.append(f"### {qid}")
         lines.append("")
-        lines.append(row("Model", "Mode", "Validated", "Correct", "Hallucinations", "Renders", "Latency"))
+        lines.append(
+            row(
+                "Model",
+                "Mode",
+                "Validated",
+                "Correct",
+                "Hallucinations",
+                "Renders",
+                "Latency",
+            )
+        )
         lines.append(sep(20, 12, 10, 8, 14, 8, 10))
         for r in sorted(q_records, key=lambda x: (x.model, x.mode)):
             lines.append(
@@ -247,7 +279,9 @@ def build_report(jsonl_path: Path, out_md_path: Path) -> None:
                     r.model,
                     r.mode,
                     "✓" if r.final_validated else "✗",
-                    "—" if r.correctness.match is None else ("✓" if r.correctness.match else "✗"),
+                    "—"
+                    if r.correctness.match is None
+                    else ("✓" if r.correctness.match else "✗"),
                     str(r.hallucinated_columns) if r.hallucinated_columns else "none",
                     "✓" if r.render_check.ok else "✗",
                     f"{r.latency_ms:.0f} ms",

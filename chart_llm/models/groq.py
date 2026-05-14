@@ -14,7 +14,12 @@ _URL = "https://api.groq.com/openai/v1/chat/completions"
 
 
 class GroqClient(LLMModel):
-    def __init__(self, model: str = "llama-3.3-70b-versatile", *, _client: httpx.Client | None = None) -> None:
+    def __init__(
+        self,
+        model: str = "llama-3.3-70b-versatile",
+        *,
+        _client: httpx.Client | None = None,
+    ) -> None:
         self._model = model
         self._api_key = os.environ["GROQ_API_KEY"]
         self._client = _client or httpx.Client(timeout=60)

@@ -28,7 +28,7 @@ _VALID_SPEC = {
 
 _WRONG_DATA_SPEC = {
     "$schema": _SCHEMA_URL,
-    "data": {"name": "sales"},          # wrong — should be "table"
+    "data": {"name": "sales"},  # wrong — should be "table"
     "mark": "bar",
     "encoding": {
         "x": {"field": "region", "type": "nominal"},
@@ -62,10 +62,20 @@ def ctx() -> DatasetContext:
         name="test",
         df=df,
         column_schema=[
-            ColumnInfo(name="region", dtype="object",
-                       sample_values=["North", "South", "East"], n_unique=3, n_null=0),
-            ColumnInfo(name="revenue", dtype="float64",
-                       sample_values=["1000.0", "2000.0", "3000.0"], n_unique=3, n_null=0),
+            ColumnInfo(
+                name="region",
+                dtype="object",
+                sample_values=["North", "South", "East"],
+                n_unique=3,
+                n_null=0,
+            ),
+            ColumnInfo(
+                name="revenue",
+                dtype="float64",
+                sample_values=["1000.0", "2000.0", "3000.0"],
+                n_unique=3,
+                n_null=0,
+            ),
         ],
         row_count=3,
     )
@@ -74,12 +84,14 @@ def ctx() -> DatasetContext:
 class FakeSequenceClient(LLMModel):
     """Returns canned LLMResponse texts in sequence; records every (system, user) call."""
 
-    def __init__(self, texts: list[str], *, prompt_tokens: int = 50, completion_tokens: int = 30):
+    def __init__(
+        self, texts: list[str], *, prompt_tokens: int = 50, completion_tokens: int = 30
+    ):
         self._texts = texts
         self._idx = 0
         self._pt = prompt_tokens
         self._ct = completion_tokens
-        self.calls: list[tuple[str, str]] = []   # (system, user) per call
+        self.calls: list[tuple[str, str]] = []  # (system, user) per call
 
     def generate(self, system: str, user: str, max_retries: int = 2) -> LLMResponse:
         self.calls.append((system, user))
@@ -118,10 +130,12 @@ def test_succeeds_on_first_attempt(ctx, vega_lite_schema):
 
 
 def test_retry_succeeds_on_second_attempt(ctx, vega_lite_schema):
-    client = FakeSequenceClient([
-        json.dumps(_WRONG_DATA_SPEC),
-        json.dumps(_VALID_SPEC),
-    ])
+    client = FakeSequenceClient(
+        [
+            json.dumps(_WRONG_DATA_SPEC),
+            json.dumps(_VALID_SPEC),
+        ]
+    )
     run = generate_validated_spec(client, ctx, "Show revenue by region", max_attempts=3)
 
     assert run.succeeded is True
@@ -175,10 +189,12 @@ def test_invalid_json_recorded_and_retry_continues(ctx, vega_lite_schema):
 
 
 def test_retry_prompt_contains_validation_errors(ctx, vega_lite_schema):
-    client = FakeSequenceClient([
-        json.dumps(_WRONG_DATA_SPEC),
-        json.dumps(_VALID_SPEC),
-    ])
+    client = FakeSequenceClient(
+        [
+            json.dumps(_WRONG_DATA_SPEC),
+            json.dumps(_VALID_SPEC),
+        ]
+    )
     generate_validated_spec(client, ctx, "Show revenue by region", max_attempts=3)
 
     assert len(client.calls) == 2
@@ -215,9 +231,9 @@ def test_total_tokens_summed_across_attempts(ctx, vega_lite_schema):
     )
     run = generate_validated_spec(client, ctx, "Show revenue", max_attempts=3)
 
-    assert run.total_tokens.prompt == 200       # 100 × 2 attempts
-    assert run.total_tokens.completion == 80    # 40 × 2 attempts
-    assert run.total_tokens.total == 280        # 200 + 80
+    assert run.total_tokens.prompt == 200  # 100 × 2 attempts
+    assert run.total_tokens.completion == 80  # 40 × 2 attempts
+    assert run.total_tokens.total == 280  # 200 + 80
 
 
 def test_total_latency_summed_across_attempts(ctx, vega_lite_schema):
@@ -258,7 +274,9 @@ def test_http_status_error_stops_loop_immediately(ctx):
                 response=httpx.Response(429),
             )
 
-    run = generate_validated_spec(RateLimitedClient(), ctx, "Show revenue", max_attempts=3)
+    run = generate_validated_spec(
+        RateLimitedClient(), ctx, "Show revenue", max_attempts=3
+    )
 
     assert run.succeeded is False
     assert run.stop_reason == "generation_error"

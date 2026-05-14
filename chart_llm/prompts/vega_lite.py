@@ -5,7 +5,9 @@ from chart_llm.prompts.loader import load_feedback_template, load_prompts
 from chart_llm.validation.types import ValidationResult
 
 
-def build_generation_prompt(dataset_ctx: DatasetContext, question: str) -> tuple[str, str]:
+def build_generation_prompt(
+    dataset_ctx: DatasetContext, question: str
+) -> tuple[str, str]:
     """Return (system, user) for an initial spec generation request."""
     system, user_template = load_prompts()
 
@@ -44,8 +46,7 @@ def build_retry_prompt(
 
     # Use str.replace to avoid escaping issues with curly braces in the template
     user = (
-        template
-        .replace("{QUESTION}", question)
+        template.replace("{QUESTION}", question)
         .replace("{PREVIOUS_SPEC}", previous_spec_text)
         .replace("{VALIDATION_ERRORS}", errors_block)
     )

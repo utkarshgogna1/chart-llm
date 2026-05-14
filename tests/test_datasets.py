@@ -23,8 +23,16 @@ def test_movies_row_count(movies):
 
 
 def test_movies_column_names(movies):
-    expected = {"title", "genre", "release_year", "runtime_min",
-                "imdb_rating", "box_office_usd", "studio", "is_sequel"}
+    expected = {
+        "title",
+        "genre",
+        "release_year",
+        "runtime_min",
+        "imdb_rating",
+        "box_office_usd",
+        "studio",
+        "is_sequel",
+    }
     assert expected.issubset(set(movies.columns))
 
 
@@ -51,7 +59,9 @@ def test_movies_box_office_null_rate(movies):
 
 def test_movies_runtime_null_rate(movies):
     null_rate = movies["runtime_min"].isna().mean()
-    assert null_rate <= 0.10, f"Expected runtime_min null rate ≤10%, got {null_rate:.1%}"
+    assert null_rate <= 0.10, (
+        f"Expected runtime_min null rate ≤10%, got {null_rate:.1%}"
+    )
 
 
 def test_movies_box_office_range(movies):
@@ -101,8 +111,15 @@ def test_weather_row_count(weather):
 
 
 def test_weather_column_names(weather):
-    expected = {"date", "city", "temp_high_f", "temp_low_f",
-                "precipitation_in", "wind_mph", "conditions"}
+    expected = {
+        "date",
+        "city",
+        "temp_high_f",
+        "temp_low_f",
+        "precipitation_in",
+        "wind_mph",
+        "conditions",
+    }
     assert expected.issubset(set(weather.columns))
 
 

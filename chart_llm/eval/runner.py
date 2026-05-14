@@ -7,7 +7,13 @@ from typing import Literal, Optional
 
 import httpx
 from pydantic import BaseModel
-from rich.progress import BarColumn, MofNCompleteColumn, Progress, SpinnerColumn, TextColumn
+from rich.progress import (
+    BarColumn,
+    MofNCompleteColumn,
+    Progress,
+    SpinnerColumn,
+    TextColumn,
+)
 
 from chart_llm.eval.queries import BenchmarkQuery, load_benchmark
 from chart_llm.eval.scoring import (
@@ -101,7 +107,13 @@ def _run_single(
         completion_tokens = result.completion_tokens
         stop_reason = "baseline"
     else:
-        run = generate_validated_spec(client, dataset_ctx, query.question, max_attempts=max_attempts, include_render=True)
+        run = generate_validated_spec(
+            client,
+            dataset_ctx,
+            query.question,
+            max_attempts=max_attempts,
+            include_render=True,
+        )
         final_spec = run.final_spec
         attempts = len(run.attempts)
         final_validated = run.succeeded
@@ -187,7 +199,9 @@ def run_benchmark(
                 record: Optional[BenchmarkRecord] = None
                 for bench_attempt in range(2):
                     try:
-                        record = _run_single(query, model_name, mode, datasets_dir, max_attempts)
+                        record = _run_single(
+                            query, model_name, mode, datasets_dir, max_attempts
+                        )
                         break
                     except httpx.HTTPStatusError as exc:
                         if exc.response.status_code == 429 and bench_attempt == 0:

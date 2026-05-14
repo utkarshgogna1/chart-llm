@@ -2,7 +2,7 @@
 
 from typing import Optional
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel
 
 from chart_llm.models.base import LLMModel
 from chart_llm.pipeline.dataset import DatasetContext

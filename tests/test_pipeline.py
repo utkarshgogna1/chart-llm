@@ -1,6 +1,5 @@
 """Tests for the generation pipeline and retry logic."""
 
-import pytest
 
 # TODO: mock LLMModel to return canned responses
 # TODO: test run_pipeline succeeds on first attempt when spec is valid
